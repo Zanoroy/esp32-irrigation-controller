@@ -89,8 +89,8 @@ curl -X POST "http://DEVICE_IP/api/config?timezone=-5&daylight_saving=true"
 ### 2. Software Installation
 ```bash
 # Clone repository
-git clone https://github.com/brucequinton/hunter_wifi_remote.git
-cd hunter_wifi_remote
+git clone https://github.com/zanoroy/esp32-irrigation-controller.git
+cd esp32-irrigation-controller
 
 # Install PlatformIO
 pip install platformio
