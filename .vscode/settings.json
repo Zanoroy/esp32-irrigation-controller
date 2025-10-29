@@ -1,0 +1,16 @@
+{
+    "terminal.integrated.env.linux": {
+        "PATH": "${env:PATH}:/home/brucequinton/.local/bin"
+    },
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "platformio-ide.useBuiltinPIOCore": true,
+    "platformio-ide.pioCorePath": "/home/brucequinton/.local/bin/pio",
+    "platformio-ide.customPATH": "/home/brucequinton/.local/bin",
+    "platformio-ide.autoRebuildAutocompleteIndex": false,
+    "platformio-ide.disablePIOHomeStartup": true,
+    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    "extensions.autoUpdate": false,
+    "files.associations": {
+        "thread": "cpp"
+    }
+}

@@ -1,0 +1,64 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "PlatformIO: Build",
+            "type": "shell",
+            "command": "/home/brucequinton/.local/bin/pio",
+            "args": ["run"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": "$platformio"
+        },
+        {
+            "label": "PlatformIO: Upload",
+            "type": "shell",
+            "command": "/home/brucequinton/.local/bin/pio",
+            "args": ["run", "--target", "upload"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": "$platformio"
+        },
+        {
+            "label": "PlatformIO: Serial Monitor",
+            "type": "shell",
+            "command": "/home/brucequinton/.local/bin/pio",
+            "args": ["device", "monitor"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "isBackground": true
+        },
+        {
+            "label": "PlatformIO: Upload and Monitor",
+            "type": "shell",
+            "command": "/home/brucequinton/.local/bin/pio",
+            "args": ["run", "--target", "upload", "--target", "monitor"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "isBackground": true
+        }
+    ]
+}
