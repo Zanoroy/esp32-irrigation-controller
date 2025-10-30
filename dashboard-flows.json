@@ -1,0 +1,124 @@
+[
+    {
+        "id": "dashboard_tab",
+        "type": "tab",
+        "label": "Irrigation Dashboard",
+        "disabled": false,
+        "info": "Web dashboard for ESP32 irrigation monitoring"
+    },
+    {
+        "id": "ui_template_main",
+        "type": "ui_template",
+        "z": "dashboard_tab",
+        "group": "dashboard_group",
+        "name": "Irrigation Dashboard",
+        "order": 1,
+        "width": "12",
+        "height": "10",
+        "format": "<!DOCTYPE html>\n<html>\n<head>\n    <title>ESP32 Irrigation Monitor</title>\n    <style>\n        .status-card {\n            background: white;\n            border-radius: 8px;\n            padding: 15px;\n            margin: 10px 0;\n            box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n        }\n        .device-info {\n            display: grid;\n            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n            gap: 10px;\n            margin-bottom: 20px;\n        }\n        .info-item {\n            padding: 10px;\n            background: #f5f5f5;\n            border-radius: 4px;\n        }\n        .zone-grid {\n            display: grid;\n            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));\n            gap: 10px;\n        }\n        .zone-card {\n            padding: 15px;\n            border-radius: 8px;\n            text-align: center;\n            font-weight: bold;\n        }\n        .zone-idle { background: #e8f5e8; color: #2e7d32; }\n        .zone-running { background: #e3f2fd; color: #1976d2; }\n        .zone-scheduled { background: #fff3e0; color: #f57c00; }\n        .zone-error { background: #ffebee; color: #d32f2f; }\n        .refresh-btn {\n            background: #4caf50;\n            color: white;\n            border: none;\n            padding: 10px 20px;\n            border-radius: 4px;\n            cursor: pointer;\n            margin: 10px 0;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"status-card\">\n        <h2>🌱 ESP32 Irrigation Controller</h2>\n        <button class=\"refresh-btn\" onclick=\"refreshData()\">🔄 Refresh Status</button>\n        \n        <div id=\"device-info\" class=\"device-info\">\n            <div class=\"info-item\">\n                <strong>Status:</strong> <span id=\"connection-status\">Loading...</span>\n            </div>\n            <div class=\"info-item\">\n                <strong>IP Address:</strong> <span id=\"ip-address\">-</span>\n            </div>\n            <div class=\"info-item\">\n                <strong>WiFi Signal:</strong> <span id=\"wifi-signal\">-</span>\n            </div>\n            <div class=\"info-item\">\n                <strong>Uptime:</strong> <span id=\"uptime\">-</span>\n            </div>\n            <div class=\"info-item\">\n                <strong>Free Memory:</strong> <span id=\"free-memory\">-</span>\n            </div>\n            <div class=\"info-item\">\n                <strong>Last Update:</strong> <span id=\"last-update\">-</span>\n            </div>\n        </div>\n    </div>\n    \n    <div class=\"status-card\">\n        <h3>💧 Zone Status</h3>\n        <div id=\"zone-status\" class=\"zone-grid\">\n            <!-- Zone cards will be populated here -->\n        </div>\n    </div>\n    \n    <div class=\"status-card\">\n        <h3>📊 Recent Activity</h3>\n        <div id=\"recent-activity\">\n            <p>Loading recent irrigation activity...</p>\n        </div>\n    </div>\n\n    <script>\n        // Node-RED dashboard messaging\n        (function(scope) {\n            \n            function refreshData() {\n                // Send message to Node-RED to refresh data\n                scope.send({payload: 'refresh'});\n            }\n            \n            // Make refreshData globally available\n            window.refreshData = refreshData;\n            \n            function formatUptime(milliseconds) {\n                const seconds = Math.floor(milliseconds / 1000);\n                const hours = Math.floor(seconds / 3600);\n                const minutes = Math.floor((seconds % 3600) / 60);\n                return `${hours}h ${minutes}m`;\n            }\n            \n            function formatMemory(bytes) {\n                return `${Math.round(bytes / 1024)} KB`;\n            }\n            \n            function formatWiFiSignal(rssi) {\n                if (rssi > -50) return `${rssi} dBm (Excellent)`;\n                if (rssi > -60) return `${rssi} dBm (Good)`;\n                if (rssi > -70) return `${rssi} dBm (Fair)`;\n                return `${rssi} dBm (Poor)`;\n            }\n            \n            function updateZoneStatus(zones) {\n                const container = document.getElementById('zone-status');\n                container.innerHTML = '';\n                \n                for (let i = 1; i <= 8; i++) {\n                    const zone = zones.find(z => z.zone_number === i) || {status: 'IDLE', time_remaining: 0};\n                    const card = document.createElement('div');\n                    card.className = `zone-card zone-${zone.status.toLowerCase()}`;\n                    card.innerHTML = `\n                        <div>Zone ${i}</div>\n                        <div>${zone.status}</div>\n                        ${zone.time_remaining > 0 ? `<div>${Math.floor(zone.time_remaining/60)}:${(zone.time_remaining%60).toString().padStart(2,'0')}</div>` : ''}\n                    `;\n                    container.appendChild(card);\n                }\n            }\n            \n            // Handle incoming messages from Node-RED\n            scope.$watch('msg', function(msg) {\n                if (msg && msg.topic === 'updateDeviceData' && msg.payload) {\n                    const data = msg.payload;\n                    \n                    if (data.device_info) {\n                        document.getElementById('ip-address').textContent = data.device_info.ip_address || '-';\n                        document.getElementById('wifi-signal').textContent = formatWiFiSignal(data.device_info.wifi_rssi);\n                        document.getElementById('uptime').textContent = formatUptime(data.device_info.uptime || 0);\n                        document.getElementById('free-memory').textContent = formatMemory(data.device_info.heap_free || 0);\n                        document.getElementById('last-update').textContent = new Date(data.last_status_update || data.device_info.last_config_update).toLocaleString();\n                        document.getElementById('connection-status').textContent = 'Connected';\n                    }\n                    \n                    // Update zone status if available\n                    if (data.zones) {\n                        updateZoneStatus(data.zones);\n                    }\n                }\n            });\n            \n            // Request initial data load\n            setTimeout(() => refreshData(), 1000);\n            \n        })(scope);\n    </script>\n</body>\n</html>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 200,
+        "y": 100,
+        "wires": [["dashboard_refresh"]]
+    },
+    {
+        "id": "dashboard_refresh",
+        "type": "function",
+        "z": "dashboard_tab",
+        "name": "Handle Dashboard Refresh",
+        "func": "// Handle refresh requests from dashboard\nif (msg.payload === 'refresh') {\n    // Trigger data query\n    return {payload: ''};\n}\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 100,
+        "wires": [["query_dashboard_data"]]
+    },
+    {
+        "id": "query_dashboard_data",
+        "type": "sqlite",
+        "z": "dashboard_tab",
+        "mydb": "irrigation_db",
+        "sqlquery": "fixed",
+        "sql": "SELECT dc.*, ds.status_data, ds.timestamp as last_status_update FROM device_config dc LEFT JOIN (SELECT device_id, status_data, timestamp, ROW_NUMBER() OVER (PARTITION BY device_id ORDER BY timestamp DESC) as rn FROM device_status) ds ON dc.device_id = ds.device_id AND ds.rn = 1",
+        "name": "Query Dashboard Data",
+        "x": 660,
+        "y": 100,
+        "wires": [["format_dashboard_data"]]
+    },
+    {
+        "id": "format_dashboard_data",
+        "type": "function",
+        "z": "dashboard_tab",
+        "name": "Format Dashboard Data",
+        "func": "// Format data for dashboard display\nif (msg.payload && msg.payload.length > 0) {\n    const device = msg.payload[0];\n    \n    const dashboardData = {\n        device_info: {\n            device_id: device.device_id,\n            ip_address: device.ip_address,\n            mac_address: device.mac_address,\n            wifi_ssid: device.wifi_ssid,\n            wifi_rssi: device.wifi_rssi,\n            heap_free: device.heap_free,\n            uptime: device.uptime,\n            firmware_version: device.firmware_version,\n            timezone: device.timezone,\n            max_zones: device.max_zones,\n            last_config_update: device.timestamp\n        },\n        current_status: device.status_data ? JSON.parse(device.status_data) : null,\n        last_status_update: device.last_status_update\n    };\n    \n    // Send data to dashboard template\n    msg.payload = dashboardData;\n    return msg;\n}\n\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 100,
+        "wires": [["send_to_dashboard"]]
+    },
+    {
+        "id": "send_to_dashboard",
+        "type": "function",
+        "z": "dashboard_tab",
+        "name": "Send to Dashboard",
+        "func": "// Send formatted data to dashboard UI\nmsg.topic = 'updateDeviceData';\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1080,
+        "y": 100,
+        "wires": [["ui_template_main"]]
+    },
+    {
+        "id": "auto_refresh",
+        "type": "inject",
+        "z": "dashboard_tab",
+        "name": "Auto Refresh",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 2,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 180,
+        "wires": [["query_dashboard_data"]]
+    },
+    {
+        "id": "dashboard_group",
+        "type": "ui_group",
+        "name": "Irrigation Monitor",
+        "tab": "dashboard_ui_tab",
+        "order": 1,
+        "disp": true,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "dashboard_ui_tab",
+        "type": "ui_tab",
+        "name": "ESP32 Irrigation",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
