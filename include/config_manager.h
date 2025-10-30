@@ -23,6 +23,16 @@ struct SystemConfig {
     bool autoNTPSync;
     int syncInterval;       // Hours between automatic NTP syncs
 
+    // MQTT settings
+    char mqttBroker[64];    // MQTT broker IP or hostname
+    int mqttPort;           // MQTT broker port (default 1883)
+    char mqttUsername[32];  // MQTT username (optional)
+    char mqttPassword[64];  // MQTT password (optional)
+    char mqttTopicPrefix[32]; // Topic prefix (default "irrigation/")
+    bool mqttEnabled;       // Enable MQTT communication
+    bool mqttRetainMessages; // Retain MQTT messages
+    int mqttKeepAlive;      // MQTT keep-alive interval in seconds
+
     // Irrigation settings
     bool enableScheduling;
     int maxZoneRunTime;     // Maximum run time in minutes
@@ -96,6 +106,24 @@ public:
 
     // Zone validation
     bool isZoneEnabled(int zone) const;
+
+    // MQTT configuration
+    bool isMQTTEnabled() const { return config.mqttEnabled; }
+    void setMQTTEnabled(bool enabled);
+    String getMQTTBroker() const { return String(config.mqttBroker); }
+    void setMQTTBroker(const String& broker);
+    int getMQTTPort() const { return config.mqttPort; }
+    void setMQTTPort(int port);
+    String getMQTTUsername() const { return String(config.mqttUsername); }
+    void setMQTTUsername(const String& username);
+    String getMQTTPassword() const { return String(config.mqttPassword); }
+    void setMQTTPassword(const String& password);
+    String getMQTTTopicPrefix() const { return String(config.mqttTopicPrefix); }
+    void setMQTTTopicPrefix(const String& prefix);
+    bool isMQTTRetainMessages() const { return config.mqttRetainMessages; }
+    void setMQTTRetainMessages(bool retain);
+    int getMQTTKeepAlive() const { return config.mqttKeepAlive; }
+    void setMQTTKeepAlive(int keepAlive);
 
     // Utility methods
     void printConfig();

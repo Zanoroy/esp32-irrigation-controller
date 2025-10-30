@@ -2,12 +2,14 @@
 #include "hunter_esp32.h"
 #include "rtc_module.h"
 #include "config_manager.h"
+#include "schedule_manager.h"
+#include <ArduinoJson.h>
 
 // HTML interface for irrigation control
 const char* getMainHTML() {
     return "<!DOCTYPE html>"
            "<html><head>"
-           "<title>Hunter ESP32 Irrigation Controller</title>"
+           "<title>ESP32 Irrigation Controller</title>"
            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
            "<style>"
            "body{font-family:Arial;margin:20px;background:#f0f8ff;}"
@@ -27,7 +29,7 @@ const char* getMainHTML() {
            "</style></head><body>"
            "<div class=\"container\">"
            "<div class=\"card\">"
-           "<h1>🌱 Hunter ESP32 Irrigation Controller</h1>"
+           "<h1>🌱 Irrigation ESP32 Irrigation Controller</h1>"
            "<div class=\"status\" id=\"status\">System Ready</div>"
            "<div class=\"time-display\" id=\"currentTime\">Loading time...</div>"
            "</div>"
@@ -90,6 +92,7 @@ int HunterWebServer::globalFlag = 0;
 const int HunterWebServer::PUMP_PIN = 5;
 RTCModule* HunterWebServer::rtcModule = nullptr;
 ConfigManager* HunterWebServer::configManager = nullptr;
+ScheduleManager* HunterWebServer::scheduleManager = nullptr;
 ZoneSchedule HunterWebServer::schedules[16] = {}; // Initialize all to default values
 int HunterWebServer::activeZones[16] = {}; // All zones start inactive
 unsigned long HunterWebServer::zoneStartTimes[16] = {}; // All start times zero
@@ -115,11 +118,27 @@ void HunterWebServer::begin() {
     server.on("/api/config", HTTP_GET, handleGetConfig);
     server.on("/api/config", HTTP_POST, handleSetConfig);
 
+    // Schedule API endpoints
+    server.on("/api/schedules", HTTP_GET, handleGetSchedules);
+    server.on("/api/schedules", HTTP_POST, handleCreateSchedule);
+    server.on("/api/schedules/active", HTTP_GET, handleGetActiveZones);
+    server.on("/api/schedules/ai", HTTP_POST, handleSetAISchedules);
+    server.on("/api/schedules/ai", HTTP_DELETE, handleClearAISchedules);
+
+    // Device status and control endpoints for Node-RED
+    server.on("/api/device/status", HTTP_GET, handleGetDeviceStatus);
+    server.on("/api/device/next", HTTP_GET, handleGetNextEvent);
+    server.on("/api/device/command", HTTP_POST, handleDeviceCommand);
+
+    // MQTT configuration endpoints
+    server.on("/api/mqtt/config", HTTP_GET, handleGetMQTTConfig);
+    server.on("/api/mqtt/config", HTTP_POST, handleSetMQTTConfig);
+
     // 404 handler
     server.onNotFound(handleNotFound);
 
     server.begin();
-    Serial.println("Hunter ESP32 WebServer started with REST API");
+    Serial.println("Irrigation ESP32 WebServer started with REST API");
     Serial.println("Available endpoints:");
     Serial.println("  GET  /                    - Main irrigation control interface");
     Serial.println("  GET  /api/start-zone      - Start zone (params: zone, time)");
@@ -131,6 +150,11 @@ void HunterWebServer::begin() {
     Serial.println("  GET  /api/config          - Get system configuration");
     Serial.println("  POST /api/config          - Set system configuration");
     Serial.println("  POST /api/set-time        - Set current time");
+    Serial.println("  GET  /api/schedules       - Get all schedules");
+    Serial.println("  POST /api/schedules       - Create new schedule");
+    Serial.println("  GET  /api/schedules/active - Get active zones status");
+    Serial.println("  POST /api/schedules/ai    - Set AI schedules from Node-RED");
+    Serial.println("  DELETE /api/schedules/ai  - Clear AI schedules");
 }
 
 void HunterWebServer::handleRoot() {
@@ -215,6 +239,33 @@ void HunterWebServer::processCommands() {
         return;
     }
 
+    // Use ScheduleManager if available, otherwise fallback to old method
+    if (scheduleManager) {
+        auto result = scheduleManager->startZoneManual(zoneNum, timeMin);
+
+        if (result.hasConflict && result.stoppedZone == 0) {
+            String jsonError = "{\"status\":\"error\",\"message\":\"" + result.message + "\"}";
+            serverInstance->server.send(409, "application/json", jsonError);
+            return;
+        }
+
+        String message = "Zone " + String(zoneNum) + " started for " + String(timeMin) + " minutes";
+        if (result.hasConflict && result.stoppedZone > 0) {
+            message += " (stopped zone " + String(result.stoppedZone) + " to resolve conflict)";
+        }
+
+        String jsonResponse = "{\"status\":\"success\",\"message\":\"" + message + "\",\"zone\":" + String(zoneNum) + ",\"duration_minutes\":" + String(timeMin);
+        if (result.stoppedZone > 0) {
+            jsonResponse += ",\"stopped_zone\":" + String(result.stoppedZone);
+        }
+        jsonResponse += "}";
+
+        serverInstance->server.send(200, "application/json", jsonResponse);
+        Serial.println("API: " + message);
+        return;
+    }
+
+    // Fallback to old method if ScheduleManager not available
     // Set global variables for main loop to process
     globalZoneID = zoneNum;
     globalTime = timeMin;
@@ -260,6 +311,22 @@ void HunterWebServer::handleStopZone() {
         return;
     }
 
+    // Use ScheduleManager if available, otherwise fallback to old method
+    if (scheduleManager) {
+        bool success = scheduleManager->stopZone(zoneNum);
+
+        if (success) {
+            String jsonResponse = "{\"status\":\"success\",\"message\":\"Zone " + String(zoneNum) + " stopped\",\"zone\":" + String(zoneNum) + "}";
+            serverInstance->server.send(200, "application/json", jsonResponse);
+            Serial.println("API: Zone " + String(zoneNum) + " stopped");
+        } else {
+            String jsonError = "{\"status\":\"error\",\"message\":\"Zone " + String(zoneNum) + " was not running\"}";
+            serverInstance->server.send(404, "application/json", jsonError);
+        }
+        return;
+    }
+
+    // Fallback to old method if ScheduleManager not available
     // Set global variables for main loop to process
     globalZoneID = zoneNum;
     globalTime = 0; // 0 time means stop
@@ -667,4 +734,286 @@ void HunterWebServer::checkSchedules() {
             }
         }
     }
+}
+
+// ===== SCHEDULE API ENDPOINTS =====
+
+void HunterWebServer::handleGetSchedules() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    String jsonResponse = scheduleManager->getSchedulesJSON();
+    serverInstance->server.send(200, "application/json", jsonResponse);
+}
+
+void HunterWebServer::handleCreateSchedule() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    // Parse URL parameters for basic schedule creation
+    if (!serverInstance->server.hasArg("zone") || !serverInstance->server.hasArg("hour") ||
+        !serverInstance->server.hasArg("minute") || !serverInstance->server.hasArg("duration")) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Missing required parameters: zone, hour, minute, duration\"}";
+        serverInstance->server.send(400, "application/json", jsonError);
+        return;
+    }
+
+    uint8_t zone = serverInstance->server.arg("zone").toInt();
+    uint8_t hour = serverInstance->server.arg("hour").toInt();
+    uint8_t minute = serverInstance->server.arg("minute").toInt();
+    uint16_t duration = serverInstance->server.arg("duration").toInt();
+    uint8_t dayMask = serverInstance->server.hasArg("days") ? serverInstance->server.arg("days").toInt() : 0b1111111; // Default: every day
+
+    if (zone < 1 || zone > 16 || hour > 23 || minute > 59 || duration < 1 || duration > 1440) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Invalid parameter values\"}";
+        serverInstance->server.send(400, "application/json", jsonError);
+        return;
+    }
+
+    uint8_t scheduleId = scheduleManager->addBasicSchedule(zone, dayMask, hour, minute, duration);
+
+    if (scheduleId > 0) {
+        String jsonResponse = "{\"status\":\"success\",\"message\":\"Schedule created\",\"schedule_id\":" + String(scheduleId) + "}";
+        serverInstance->server.send(201, "application/json", jsonResponse);
+    } else {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Failed to create schedule\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+    }
+}
+
+void HunterWebServer::handleGetActiveZones() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    String jsonResponse = scheduleManager->getActiveZonesJSON();
+    serverInstance->server.send(200, "application/json", jsonResponse);
+}
+
+void HunterWebServer::handleSetAISchedules() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    // Get JSON body from Node-RED
+    String body = serverInstance->server.arg("plain");
+
+    if (body.length() == 0) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Empty request body\"}";
+        serverInstance->server.send(400, "application/json", jsonError);
+        return;
+    }
+
+    // Process AI schedules batch
+    bool success = scheduleManager->setAIScheduleBatch(body);
+
+    if (success) {
+        String jsonResponse = "{\"status\":\"success\",\"message\":\"AI schedules updated\"}";
+        serverInstance->server.send(200, "application/json", jsonResponse);
+        Serial.println("API: AI schedules updated from Node-RED");
+    } else {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Failed to process AI schedules\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+    }
+}
+
+void HunterWebServer::handleClearAISchedules() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    scheduleManager->clearAISchedules();
+    String jsonResponse = "{\"status\":\"success\",\"message\":\"AI schedules cleared\"}";
+    serverInstance->server.send(200, "application/json", jsonResponse);
+    Serial.println("API: AI schedules cleared");
+}
+
+void HunterWebServer::handleUpdateSchedule() {
+    // Implementation for updating individual schedules
+    String jsonError = "{\"status\":\"error\",\"message\":\"Update schedule endpoint not implemented yet\"}";
+    serverInstance->server.send(501, "application/json", jsonError);
+}
+
+void HunterWebServer::handleDeleteSchedule() {
+    // Implementation for deleting individual schedules
+    String jsonError = "{\"status\":\"error\",\"message\":\"Delete schedule endpoint not implemented yet\"}";
+    serverInstance->server.send(501, "application/json", jsonError);
+}
+
+// Device status and control handlers for Node-RED interface
+void HunterWebServer::handleGetDeviceStatus() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    String deviceStatus = scheduleManager->getDeviceStatusJSON();
+    serverInstance->server.send(200, "application/json", deviceStatus);
+    Serial.println("API: Device status requested");
+}
+
+void HunterWebServer::handleGetNextEvent() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    String nextEvent = scheduleManager->getNextEventJSON();
+    serverInstance->server.send(200, "application/json", nextEvent);
+    Serial.println("API: Next event requested");
+}
+
+void HunterWebServer::handleDeviceCommand() {
+    if (!serverInstance) return;
+
+    if (!scheduleManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    if (serverInstance->server.method() != HTTP_POST) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"POST method required\"}";
+        serverInstance->server.send(405, "application/json", jsonError);
+        return;
+    }
+
+    String command = serverInstance->server.arg("plain");
+    if (command.length() == 0) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Empty command body\"}";
+        serverInstance->server.send(400, "application/json", jsonError);
+        return;
+    }
+
+    bool success = scheduleManager->updateScheduleFromJSON(command);
+    if (success) {
+        String jsonResponse = "{\"status\":\"success\",\"message\":\"Command executed\"}";
+        serverInstance->server.send(200, "application/json", jsonResponse);
+        Serial.println("API: Device command executed");
+    } else {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Command execution failed\"}";
+        serverInstance->server.send(400, "application/json", jsonError);
+        Serial.println("API: Device command failed");
+    }
+}
+
+// MQTT configuration handlers
+void HunterWebServer::handleGetMQTTConfig() {
+    if (!serverInstance) return;
+
+    if (!configManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Config manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    JsonDocument doc;
+    doc["mqtt_enabled"] = configManager->isMQTTEnabled();
+    doc["mqtt_broker"] = configManager->getMQTTBroker();
+    doc["mqtt_port"] = configManager->getMQTTPort();
+    doc["mqtt_username"] = configManager->getMQTTUsername();
+    doc["mqtt_topic_prefix"] = configManager->getMQTTTopicPrefix();
+    doc["mqtt_retain"] = configManager->isMQTTRetainMessages();
+    doc["mqtt_keep_alive"] = configManager->getMQTTKeepAlive();
+
+    String jsonResponse;
+    serializeJson(doc, jsonResponse);
+
+    serverInstance->server.send(200, "application/json", jsonResponse);
+    Serial.println("API: MQTT config requested");
+}
+
+void HunterWebServer::handleSetMQTTConfig() {
+    if (!serverInstance) return;
+
+    if (!configManager) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Config manager not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    if (serverInstance->server.method() != HTTP_POST) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"POST method required\"}";
+        serverInstance->server.send(405, "application/json", jsonError);
+        return;
+    }
+
+    String body = serverInstance->server.arg("plain");
+    if (body.length() == 0) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Empty request body\"}";
+        serverInstance->server.send(400, "application/json", jsonError);
+        return;
+    }
+
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, body);
+
+    if (error) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"Invalid JSON\"}";
+        serverInstance->server.send(400, "application/json", jsonError);
+        return;
+    }
+
+    // Update MQTT configuration
+    if (!doc["mqtt_enabled"].isNull()) {
+        configManager->setMQTTEnabled(doc["mqtt_enabled"]);
+    }
+    if (!doc["mqtt_broker"].isNull()) {
+        configManager->setMQTTBroker(doc["mqtt_broker"]);
+    }
+    if (!doc["mqtt_port"].isNull()) {
+        configManager->setMQTTPort(doc["mqtt_port"]);
+    }
+    if (!doc["mqtt_username"].isNull()) {
+        configManager->setMQTTUsername(doc["mqtt_username"]);
+    }
+    if (!doc["mqtt_password"].isNull()) {
+        configManager->setMQTTPassword(doc["mqtt_password"]);
+    }
+    if (!doc["mqtt_topic_prefix"].isNull()) {
+        configManager->setMQTTTopicPrefix(doc["mqtt_topic_prefix"]);
+    }
+    if (!doc["mqtt_retain"].isNull()) {
+        configManager->setMQTTRetainMessages(doc["mqtt_retain"]);
+    }
+    if (!doc["mqtt_keep_alive"].isNull()) {
+        configManager->setMQTTKeepAlive(doc["mqtt_keep_alive"]);
+    }
+    if (!doc["timezone"].isNull()) {
+        float tz = doc["timezone"];
+        int halfHours = (int)(tz * 2);
+        configManager->setTimezoneOffset(halfHours);
+    }
+
+    String jsonResponse = "{\"status\":\"success\",\"message\":\"MQTT configuration updated\"}";
+    serverInstance->server.send(200, "application/json", jsonResponse);
+    Serial.println("API: MQTT configuration updated");
 }

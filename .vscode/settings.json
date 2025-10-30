@@ -11,6 +11,16 @@
     "C_Cpp.intelliSenseEngine": "Tag Parser",
     "extensions.autoUpdate": false,
     "files.associations": {
-        "thread": "cpp"
+        "thread": "cpp",
+        "string": "cpp",
+        "array": "cpp",
+        "chrono": "cpp",
+        "functional": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp"
     }
 }

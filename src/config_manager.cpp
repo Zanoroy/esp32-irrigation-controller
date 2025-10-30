@@ -23,8 +23,8 @@ bool ConfigManager::begin(RTCModule* rtc) {
 }
 
 void ConfigManager::setDefaults() {
-    // Timezone defaults (UTC)
-    config.timezoneOffset = 0;
+    // Timezone defaults (Australia/Adelaide UTC+9:30)
+    config.timezoneOffset = 19; // 19 half-hours = UTC+9:30
     config.daylightSaving = false;
 
     // WiFi defaults (empty - use main.cpp defaults)
@@ -36,6 +36,16 @@ void ConfigManager::setDefaults() {
     strcpy(config.ntpServer2, "time.nist.gov");
     config.autoNTPSync = true;
     config.syncInterval = 24; // 24 hours
+
+    // MQTT defaults
+    strcpy(config.mqttBroker, "");
+    config.mqttPort = 1883;
+    strcpy(config.mqttUsername, "");
+    strcpy(config.mqttPassword, "");
+    strcpy(config.mqttTopicPrefix, "irrigation/");
+    config.mqttEnabled = false;
+    config.mqttRetainMessages = true;
+    config.mqttKeepAlive = 60; // 60 seconds
 
     // Irrigation defaults
     config.enableScheduling = true;
@@ -327,10 +337,66 @@ String ConfigManager::getConfigJSON() {
     json += "\"ntp_server2\":\"" + String(config.ntpServer2) + "\",";
     json += "\"auto_ntp\":" + String(config.autoNTPSync ? "true" : "false") + ",";
     json += "\"sync_interval\":" + String(config.syncInterval) + ",";
+    json += "\"mqtt_enabled\":" + String(config.mqttEnabled ? "true" : "false") + ",";
+    json += "\"mqtt_broker\":\"" + String(config.mqttBroker) + "\",";
+    json += "\"mqtt_port\":" + String(config.mqttPort) + ",";
+    json += "\"mqtt_username\":\"" + String(config.mqttUsername) + "\",";
+    json += "\"mqtt_topic_prefix\":\"" + String(config.mqttTopicPrefix) + "\",";
+    json += "\"mqtt_retain\":" + String(config.mqttRetainMessages ? "true" : "false") + ",";
+    json += "\"mqtt_keep_alive\":" + String(config.mqttKeepAlive) + ",";
     json += "\"scheduling\":" + String(config.enableScheduling ? "true" : "false") + ",";
     json += "\"max_runtime\":" + String(config.maxZoneRunTime) + ",";
     json += "\"max_enabled_zones\":" + String(config.maxEnabledZones) + ",";
     json += "\"pump_safety\":" + String(config.pumpSafetyMode ? "true" : "false");
     json += "}";
     return json;
+}
+
+// MQTT Configuration Methods
+void ConfigManager::setMQTTEnabled(bool enabled) {
+    config.mqttEnabled = enabled;
+    saveConfig();
+}
+
+void ConfigManager::setMQTTBroker(const String& broker) {
+    strncpy(config.mqttBroker, broker.c_str(), sizeof(config.mqttBroker) - 1);
+    config.mqttBroker[sizeof(config.mqttBroker) - 1] = '\0';
+    saveConfig();
+}
+
+void ConfigManager::setMQTTPort(int port) {
+    if (port > 0 && port <= 65535) {
+        config.mqttPort = port;
+        saveConfig();
+    }
+}
+
+void ConfigManager::setMQTTUsername(const String& username) {
+    strncpy(config.mqttUsername, username.c_str(), sizeof(config.mqttUsername) - 1);
+    config.mqttUsername[sizeof(config.mqttUsername) - 1] = '\0';
+    saveConfig();
+}
+
+void ConfigManager::setMQTTPassword(const String& password) {
+    strncpy(config.mqttPassword, password.c_str(), sizeof(config.mqttPassword) - 1);
+    config.mqttPassword[sizeof(config.mqttPassword) - 1] = '\0';
+    saveConfig();
+}
+
+void ConfigManager::setMQTTTopicPrefix(const String& prefix) {
+    strncpy(config.mqttTopicPrefix, prefix.c_str(), sizeof(config.mqttTopicPrefix) - 1);
+    config.mqttTopicPrefix[sizeof(config.mqttTopicPrefix) - 1] = '\0';
+    saveConfig();
+}
+
+void ConfigManager::setMQTTRetainMessages(bool retain) {
+    config.mqttRetainMessages = retain;
+    saveConfig();
+}
+
+void ConfigManager::setMQTTKeepAlive(int keepAlive) {
+    if (keepAlive > 0 && keepAlive <= 3600) {
+        config.mqttKeepAlive = keepAlive;
+        saveConfig();
+    }
 }

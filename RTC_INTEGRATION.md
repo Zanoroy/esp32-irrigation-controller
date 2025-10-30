@@ -283,7 +283,7 @@ All builds successful with RTC and EEPROM integration:
 - **ESP32-S3**: Compatible (build to verify)
 
 ## Future Enhancements
-- **Scheduled Watering**: Time-based zone activation using EEPROM storage
+- **Scheduled Irrigation**: Time-based zone activation using EEPROM storage
 - **Data Logging**: Timestamped irrigation logs stored in EEPROM
 - **Configuration Storage**: Zone settings and schedules in non-volatile memory
 - **Alarm Functions**: Daily/weekly watering schedules

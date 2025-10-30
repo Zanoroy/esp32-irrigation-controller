@@ -5,8 +5,10 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-// Forward declaration
+// Forward declarations
 class RTCModule;
+class ConfigManager;
+class ScheduleManager;
 
 // Zone schedule structure
 struct ZoneSchedule {
@@ -45,6 +47,9 @@ private:
     // Configuration manager reference
     static class ConfigManager* configManager;
 
+    // Schedule manager reference
+    static class ScheduleManager* scheduleManager;
+
     // Private methods for handling requests
     static void handleRoot();
     static void handleNotFound();
@@ -60,6 +65,24 @@ private:
     static void handleGetConfig();
     static void handleSetConfig();
 
+    // Schedule API endpoints
+    static void handleGetSchedules();
+    static void handleCreateSchedule();
+    static void handleUpdateSchedule();
+    static void handleDeleteSchedule();
+    static void handleGetActiveZones();
+    static void handleSetAISchedules();
+    static void handleClearAISchedules();
+
+    // Device status and control handlers for Node-RED
+    static void handleGetDeviceStatus();
+    static void handleGetNextEvent();
+    static void handleDeviceCommand();
+
+    // MQTT configuration handlers
+    static void handleGetMQTTConfig();
+    static void handleSetMQTTConfig();
+
 public:
     // Constructor
     HunterWebServer(int port = 80);
@@ -72,6 +95,9 @@ public:
 
     // Set Configuration manager reference
     void setConfigManager(class ConfigManager* config) { configManager = config; }
+
+    // Set Schedule manager reference
+    void setScheduleManager(class ScheduleManager* scheduler) { scheduleManager = scheduler; }
 
     // Process any pending commands (call this in main loop)
     void processCommands();

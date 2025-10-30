@@ -29,6 +29,8 @@
 #include "web_server.h"
 #include "rtc_module.h"
 #include "config_manager.h"
+#include "schedule_manager.h"
+#include "mqtt_manager.h"
 
 // Define constants
 const bool   PUMP_PIN_DEFAULT = false; // Set to true to set PUMP_PIN as On by default
@@ -43,17 +45,35 @@ const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 #endif
 
-// Create web server, RTC, and configuration instances
+// Create web server, RTC, configuration, schedule manager, and MQTT manager instances
 HunterWebServer hunterServer(80);
 RTCModule rtcModule;
 ConfigManager configManager;
+ScheduleManager scheduleManager;
+MQTTManager mqttManager;
+
+// Zone control callback function for ScheduleManager
+void zoneControlCallback(uint8_t zoneNumber, bool enable) {
+  Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF"));
+
+  if (enable) {
+    // Start the zone using Hunter protocol (zone, time in minutes)
+    // Use a default of 10 minutes for scheduled zones - this will be overridden by schedule duration
+    HunterStart(zoneNumber, 10);
+    Serial.println("Zone " + String(zoneNumber) + " started via schedule");
+  } else {
+    // Stop the zone
+    HunterStop(zoneNumber);
+    Serial.println("Zone " + String(zoneNumber) + " stopped via schedule");
+  }
+}
 
 void setup(void){
   // Serial port for debugging purposes
   Serial.begin(115200);
   delay(1000); // Allow serial to stabilize
 
-  Serial.println("Hunter ESP32 Controller Starting...");
+  Serial.println("Irrigation ESP32 Controller Starting...");
   Serial.println("Built with PlatformIO");
 
   // Print system information
@@ -95,6 +115,19 @@ void setup(void){
   } else {
     Serial.println("WARNING: Configuration Manager failed to initialize");
     Serial.println("Using default settings");
+  }
+
+  // Initialize Schedule Manager
+  Serial.println("");
+  Serial.println("Initializing Schedule Manager...");
+  if (scheduleManager.begin(&configManager, &rtcModule)) {
+    Serial.println("Schedule Manager initialized successfully");
+
+    // Set the zone control callback
+    scheduleManager.setZoneControlCallback(zoneControlCallback);
+    Serial.println("Zone control callback configured");
+  } else {
+    Serial.println("WARNING: Schedule Manager failed to initialize");
   }
 
   // Connect to Wi-Fi
@@ -157,7 +190,17 @@ void setup(void){
   // Initialize and start web server
   hunterServer.setRTCModule(&rtcModule);
   hunterServer.setConfigManager(&configManager);
+  hunterServer.setScheduleManager(&scheduleManager);
   hunterServer.begin();
+
+  // Initialize MQTT Manager
+  Serial.println("");
+  Serial.println("Initializing MQTT Manager...");
+  if (mqttManager.begin(&configManager, &scheduleManager)) {
+    Serial.println("MQTT Manager initialized successfully");
+  } else {
+    Serial.println("WARNING: MQTT Manager failed to initialize");
+  }
 
   // Print current time at startup
   if (rtcModule.isInitialized()) {
@@ -168,7 +211,7 @@ void setup(void){
   }
 
   Serial.println("=================================");
-  Serial.println("Hunter ESP32 Controller Ready!");
+  Serial.println("Irrigation ESP32 Controller Ready!");
   Serial.println("Access the web interface at: http://" + WiFi.localIP().toString());
   Serial.println("=================================");
 }
@@ -254,6 +297,15 @@ void loop(void)
 
   // Process any pending Hunter commands from web server
   hunterServer.processCommands();
+
+  // Process MQTT communication
+  mqttManager.loop();
+
+  // Check and execute scheduled zones
+  scheduleManager.checkAndExecuteSchedules();
+
+  // Process active zones (handle zone timeouts and cleanup)
+  scheduleManager.processActiveZones();
 
   // Feed the watchdog and yield to other tasks
   yield();
