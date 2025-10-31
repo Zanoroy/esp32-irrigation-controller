@@ -8,6 +8,7 @@
 // Forward declarations
 class ConfigManager;
 class ScheduleManager;
+class RTCModule;
 
 class MQTTManager {
 private:
@@ -15,9 +16,11 @@ private:
     PubSubClient mqttClient;
     ConfigManager* configManager;
     ScheduleManager* scheduleManager;
+    RTCModule* rtcModule;
 
     unsigned long lastReconnectAttempt;
     unsigned long lastStatusPublish;
+    int lastMinutePublished;  // Track last minute when status was published
     bool isConnected;
 
     // Topic constants
@@ -47,7 +50,7 @@ public:
     MQTTManager();
 
     // Initialization
-    bool begin(ConfigManager* config, ScheduleManager* schedule);
+    bool begin(ConfigManager* config, ScheduleManager* schedule, RTCModule* rtc);
 
     // Connection management
     void loop();

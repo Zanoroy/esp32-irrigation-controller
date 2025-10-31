@@ -196,7 +196,7 @@ void setup(void){
   // Initialize MQTT Manager
   Serial.println("");
   Serial.println("Initializing MQTT Manager...");
-  if (mqttManager.begin(&configManager, &scheduleManager)) {
+  if (mqttManager.begin(&configManager, &scheduleManager, &rtcModule)) {
     Serial.println("MQTT Manager initialized successfully");
   } else {
     Serial.println("WARNING: MQTT Manager failed to initialize");

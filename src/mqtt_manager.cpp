@@ -1,6 +1,7 @@
 #include "mqtt_manager.h"
 #include "config_manager.h"
 #include "schedule_manager.h"
+#include "rtc_module.h"
 #include <ArduinoJson.h>
 
 // Static instance for callback
@@ -10,17 +11,20 @@ MQTTManager::MQTTManager() : mqttClient(wifiClient) {
     instance = this;
     configManager = nullptr;
     scheduleManager = nullptr;
+    rtcModule = nullptr;
     lastReconnectAttempt = 0;
     lastStatusPublish = 0;
+    lastMinutePublished = -1;  // Initialize to -1 to force first publish
     isConnected = false;
     deviceId = "esp32_irrigation";
 }
 
-bool MQTTManager::begin(ConfigManager* config, ScheduleManager* schedule) {
+bool MQTTManager::begin(ConfigManager* config, ScheduleManager* schedule, RTCModule* rtc) {
     configManager = config;
     scheduleManager = schedule;
+    rtcModule = rtc;
 
-    if (!configManager || !scheduleManager) {
+    if (!configManager || !scheduleManager || !rtcModule) {
         Serial.println("MQTT: Invalid managers provided");
         return false;
     }
@@ -79,12 +83,31 @@ void MQTTManager::loop() {
         isConnected = true;
         mqttClient.loop();
 
-        // Publish status periodically (every 30 seconds)
-        unsigned long now = millis();
-        if (now - lastStatusPublish > 30000) {
-            lastStatusPublish = now;
-            publishStatus();
-            publishDeviceConfig();  // Publish device configuration including IP
+        // Publish status every minute on the minute using RTC clock
+        if (rtcModule) {
+            DateTime currentTime = rtcModule->getCurrentTime();
+            int currentMinute = currentTime.minute();
+
+            // Check if we've moved to a new minute
+            if (currentMinute != lastMinutePublished) {
+                lastMinutePublished = currentMinute;
+                lastStatusPublish = millis();  // Update for compatibility
+
+                char timeStr[10];
+                sprintf(timeStr, "%02d:%02d", currentTime.hour(), currentTime.minute());
+                Serial.println("MQTT: Publishing periodic status at " + String(timeStr));
+
+                publishStatus();
+                publishDeviceConfig();  // Publish device configuration including IP
+            }
+        } else {
+            // Fallback to 30-second interval if RTC not available
+            unsigned long now = millis();
+            if (now - lastStatusPublish > 30000) {
+                lastStatusPublish = now;
+                publishStatus();
+                publishDeviceConfig();  // Publish device configuration including IP
+            }
         }
     }
 }
@@ -126,6 +149,7 @@ bool MQTTManager::reconnect() {
     if (connected) {
         isConnected = true;
         Serial.println("MQTT: Connected");
+        lastMinutePublished = -1;  // Reset to force immediate status publish
         subscribeToTopics();
         Serial.println("MQTT: Publishing initial status...");
         publishDiscovery();
@@ -340,6 +364,18 @@ void MQTTManager::publishDeviceConfig() {
     }
 
     JsonDocument doc;
+    DateTime utcTime = rtcModule->getCurrentTime();
+    int offsetMinutes = configManager->getTimezoneOffset() * 30;
+    DateTime localTime = DateTime(utcTime.unixtime() + (offsetMinutes * 60));
+
+    char timeBuffer[32];
+    int offsetHours = offsetMinutes / 60;
+    int offsetMins = abs(offsetMinutes) % 60;
+    sprintf(timeBuffer, "%04d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
+            localTime.year(), localTime.month(), localTime.day(),
+            localTime.hour(), localTime.minute(), localTime.second(),
+            offsetHours, offsetMins);
+
     doc["device_id"] = deviceId;
     doc["client_id"] = getClientId();
     doc["ip_address"] = WiFi.localIP().toString();
@@ -347,6 +383,7 @@ void MQTTManager::publishDeviceConfig() {
     doc["wifi_ssid"] = WiFi.SSID();
     doc["wifi_rssi"] = WiFi.RSSI();
     doc["heap_free"] = ESP.getFreeHeap();
+    doc["timestamp"] = timeBuffer;
     doc["uptime"] = millis();
     doc["firmware_version"] = "1.0.0";
     doc["mqtt_broker"] = configManager->getMQTTBroker();
