@@ -44,7 +44,7 @@ The MQTT interface provides publish/subscribe messaging for real-time monitoring
 
 All topics follow the pattern: `{prefix}/{device_id}/{category}/{subcategory}`
 
-Default prefix: `irrigation/`  
+Default prefix: `irrigation/`
 Default device ID: `esp32_irrigation`
 
 ---
@@ -53,8 +53,8 @@ Default device ID: `esp32_irrigation`
 
 ### 1.2.1 Device Configuration
 
-**Topic:** `irrigation/esp32_irrigation/config/device`  
-**Frequency:** Every minute on the minute (RTC synchronized)  
+**Topic:** `irrigation/esp32_irrigation/config/device`
+**Frequency:** Every minute on the minute (RTC synchronized)
 **Retain:** Yes (configurable)
 
 **Payload Structure:**
@@ -90,8 +90,8 @@ Default device ID: `esp32_irrigation`
 
 ### 1.2.2 Device Status
 
-**Topic:** `irrigation/esp32_irrigation/status/device`  
-**Frequency:** Every minute on the minute  
+**Topic:** `irrigation/esp32_irrigation/status/device`
+**Frequency:** Every minute on the minute
 **Retain:** Yes (configurable)
 
 **Payload Structure:**
@@ -122,8 +122,8 @@ Default device ID: `esp32_irrigation`
 
 ### 1.2.3 Schedule Status
 
-**Topic:** `irrigation/esp32_irrigation/status/schedules`  
-**Frequency:** On change + every minute  
+**Topic:** `irrigation/esp32_irrigation/status/schedules`
+**Frequency:** On change + every minute
 **Retain:** Yes
 
 **Payload Structure:**
@@ -153,8 +153,8 @@ Default device ID: `esp32_irrigation`
 
 ### 1.2.4 Zone Status (Individual)
 
-**Topic:** `irrigation/esp32_irrigation/status/zone/{zone_number}`  
-**Frequency:** On zone state change  
+**Topic:** `irrigation/esp32_irrigation/status/zone/{zone_number}`
+**Frequency:** On zone state change
 **Retain:** No
 
 **Payload Structure:**
@@ -171,8 +171,8 @@ Default device ID: `esp32_irrigation`
 
 ### 1.2.5 Configuration Status
 
-**Topic:** `irrigation/esp32_irrigation/status/config`  
-**Frequency:** On configuration change  
+**Topic:** `irrigation/esp32_irrigation/status/config`
+**Frequency:** On configuration change
 **Retain:** Yes
 
 **Payload Structure:**
@@ -194,8 +194,8 @@ Default device ID: `esp32_irrigation`
 
 ### 1.2.6 Home Assistant Discovery
 
-**Topic:** `homeassistant/switch/esp32_irrigation/config`  
-**Frequency:** On connection  
+**Topic:** `homeassistant/switch/esp32_irrigation/config`
+**Frequency:** On connection
 **Retain:** Yes
 
 **Payload Structure:**
@@ -274,7 +274,7 @@ mosquitto_pub -h 172.17.254.10 -t "irrigation/esp32_irrigation/command/enable_sc
 
 ### 1.3.3 Schedule Management
 
-**Topic:** `irrigation/esp32_irrigation/schedule/set`  
+**Topic:** `irrigation/esp32_irrigation/schedule/set`
 **Payload:** JSON schedule object
 
 **Structure:**
@@ -293,7 +293,7 @@ mosquitto_pub -h 172.17.254.10 -t "irrigation/esp32_irrigation/command/enable_sc
 }
 ```
 
-**Response Topic:** `irrigation/esp32_irrigation/schedule/result`  
+**Response Topic:** `irrigation/esp32_irrigation/schedule/result`
 **Response Payload:** `"success"` or `"error"`
 
 **Example:**
@@ -316,7 +316,7 @@ mosquitto_pub -h 172.17.254.10 \
 
 ### 1.3.4 AI Schedule Management
 
-**Topic:** `irrigation/esp32_irrigation/schedule/ai/set`  
+**Topic:** `irrigation/esp32_irrigation/schedule/ai/set`
 **Payload:** JSON schedule array
 
 **Structure:**
@@ -335,7 +335,7 @@ mosquitto_pub -h 172.17.254.10 \
 
 **Days Format:** `M=Monday, T=Tuesday, W=Wednesday, T=Thursday, F=Friday, S=Saturday, S=Sunday`
 
-**Response Topic:** `irrigation/esp32_irrigation/schedule/ai/result`  
+**Response Topic:** `irrigation/esp32_irrigation/schedule/ai/result`
 **Response Payload:** `"success"` or `"error"`
 
 ---
@@ -422,7 +422,7 @@ mqtt:
       value_template: "{{ value_json.zones | length }}"
       json_attributes_topic: "irrigation/esp32_irrigation/config/device"
       json_attributes_template: "{{ value_json | tojson }}"
-      
+
     - name: "Irrigation WiFi Signal"
       state_topic: "irrigation/esp32_irrigation/config/device"
       value_template: "{{ value_json.wifi_rssi }}"
@@ -1022,7 +1022,7 @@ curl -X POST "http://192.168.1.100/api/device/command" \
    ```
    Topic: irrigation/esp32_irrigation/command/zone/start
    Payload: {"zone": 1, "duration": 15}
-   
+
    Topic: irrigation/esp32_irrigation/command/zone/stop
    Payload: {"zone": 1}
    ```
@@ -1039,7 +1039,7 @@ curl -X POST "http://192.168.1.100/api/device/command" \
 
 4. **Implement Last Will and Testament (LWT)**
    - **Current:** No offline detection
-   - **Recommendation:** 
+   - **Recommendation:**
    ```
    LWT Topic: irrigation/esp32_irrigation/status/availability
    LWT Payload: "offline"
@@ -1087,14 +1087,14 @@ curl -X POST "http://192.168.1.100/api/device/command" \
 
 1. **Add Authentication and Authorization**
    - **Current:** No authentication
-   - **Recommendation:** 
+   - **Recommendation:**
      - API key authentication via header: `X-API-Key: your_key`
      - Optional username/password with JWT tokens
      - Role-based access control (read-only, operator, admin)
 
 2. **Implement Rate Limiting**
    - **Current:** Unlimited requests
-   - **Recommendation:** 
+   - **Recommendation:**
      - Limit to 60 requests per minute per IP
      - Return HTTP 429 (Too Many Requests) when exceeded
      - Include `X-RateLimit-*` headers
@@ -1535,9 +1535,9 @@ irrigation/esp32_irrigation/schedule/ai/set
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 6, 2025  
-**Firmware Version:** 1.0.0  
+**Document Version:** 1.0
+**Last Updated:** November 6, 2025
+**Firmware Version:** 1.0.0
 **API Version:** 1.0
 
 ---
