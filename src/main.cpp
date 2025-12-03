@@ -25,7 +25,8 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include "hunter_esp32.h"
+// #include "hunter_esp32.h"
+#include "HunterRoam.h"
 #include "web_server.h"
 #include "rtc_module.h"
 #include "config_manager.h"
@@ -51,7 +52,7 @@ RTCModule rtcModule;
 ConfigManager configManager;
 ScheduleManager scheduleManager;
 MQTTManager mqttManager;
-
+HunterRoam hunterController(HUNTER_PIN);
 // Zone control callback function for ScheduleManager
 void zoneControlCallback(uint8_t zoneNumber, bool enable) {
   Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF"));
@@ -59,11 +60,11 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable) {
   if (enable) {
     // Start the zone using Hunter protocol (zone, time in minutes)
     // Use a default of 10 minutes for scheduled zones - this will be overridden by schedule duration
-    HunterStart(zoneNumber, 10);
+    hunterController.startZone(zoneNumber, 10);
     Serial.println("Zone " + String(zoneNumber) + " started via schedule");
   } else {
     // Stop the zone
-    HunterStop(zoneNumber);
+    hunterController.stopZone(zoneNumber);
     Serial.println("Zone " + String(zoneNumber) + " stopped via schedule");
   }
 }

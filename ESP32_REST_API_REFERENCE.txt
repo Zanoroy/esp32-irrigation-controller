@@ -1,0 +1,467 @@
+================================================================================
+ESP32 IRRIGATION CONTROLLER - REST API REFERENCE
+================================================================================
+
+Base URL: http://[ESP32_IP_ADDRESS]/api/
+
+This document provides a complete reference for all REST API endpoints
+available on the ESP32 Irrigation Controller.
+
+================================================================================
+ZONE CONTROL ENDPOINTS
+================================================================================
+
+1. START ZONE
+   Endpoint: GET /api/start-zone
+   Purpose:  Start a specific irrigation zone for a specified duration
+
+   Parameters:
+   - zone (required): Zone number (1-16)
+   - time (required): Duration in minutes (1-240)
+
+   Example Usage:
+   curl "http://192.168.1.100/api/start-zone?zone=3&time=15"
+
+   Response: Plain text confirmation message
+   Example: "Zone 3 started for 15 minutes"
+
+2. STOP ZONE
+   Endpoint: GET /api/stop-zone
+   Purpose:  Stop a specific irrigation zone immediately
+
+   Parameters:
+   - zone (required): Zone number (1-16)
+
+   Example Usage:
+   curl "http://192.168.1.100/api/stop-zone?zone=3"
+
+   Response: Plain text confirmation message
+   Example: "Zone 3 stopped"
+
+================================================================================
+PROGRAM CONTROL
+================================================================================
+
+3. RUN PROGRAM
+   Endpoint: GET /api/run-program
+   Purpose:  Execute a pre-configured irrigation program
+
+   Parameters:
+   - program (required): Program number (1-4)
+
+   Example Usage:
+   curl "http://192.168.1.100/api/run-program?program=1"
+
+   Response: Plain text confirmation message
+   Example: "Program 1 started"
+
+================================================================================
+TIME AND CLOCK MANAGEMENT
+================================================================================
+
+4. GET CURRENT TIME
+   Endpoint: GET /api/time
+   Purpose:  Retrieve current RTC time
+
+   Parameters: None
+
+   Example Usage:
+   curl "http://192.168.1.100/api/time"
+
+   Response: Plain text time string
+   Example: "2025-11-01 14:30:00"
+
+5. SET TIME
+   Endpoint: POST /api/set-time
+   Purpose:  Manually set the RTC time
+
+   Parameters (form data):
+   - year (required): Year (e.g., 2025)
+   - month (required): Month (1-12)
+   - day (required): Day (1-31)
+   - hour (required): Hour (0-23)
+   - minute (required): Minute (0-59)
+   - second (required): Second (0-59)
+
+   Example Usage:
+   curl -X POST "http://192.168.1.100/api/set-time" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "year=2025&month=11&day=1&hour=14&minute=30&second=0"
+
+   Response: Plain text confirmation
+
+6. SYNC WITH NTP
+   Endpoint: GET /api/sync-ntp
+   Purpose:  Synchronize RTC with Network Time Protocol servers
+
+   Parameters: None
+
+   Example Usage:
+   curl "http://192.168.1.100/api/sync-ntp"
+
+   Response: Plain text confirmation of sync status
+
+================================================================================
+SYSTEM STATUS AND INFORMATION
+================================================================================
+
+7. GET SYSTEM STATUS
+   Endpoint: GET /api/status
+   Purpose:  Retrieve comprehensive system status information
+
+   Parameters: None
+
+   Example Usage:
+   curl "http://192.168.1.100/api/status"
+
+   Response: HTML formatted system information including:
+   - Uptime
+   - Memory usage
+   - WiFi status
+   - Active zones
+   - Schedule status
+
+================================================================================
+CONFIGURATION MANAGEMENT
+================================================================================
+
+8. GET CONFIGURATION
+   Endpoint: GET /api/config
+   Purpose:  Retrieve current system configuration
+
+   Parameters: None
+
+   Example Usage:
+   curl "http://192.168.1.100/api/config"
+
+   Response: JSON object with configuration settings
+   Example:
+   {
+     "timezone_offset": 9.5,
+     "max_enabled_zones": 8,
+     "mqtt_enabled": true,
+     "mqtt_broker": "172.17.254.10",
+     "mqtt_port": 1883
+   }
+
+9. SET CONFIGURATION
+   Endpoint: POST /api/config
+   Purpose:  Update system configuration settings
+
+   Content-Type: application/json
+
+   Parameters (JSON body):
+   - timezone_offset: Timezone offset in hours (e.g., 9.5 for Adelaide)
+   - max_enabled_zones: Maximum number of zones (1-16)
+   - mqtt_broker: MQTT broker IP address
+   - mqtt_port: MQTT broker port
+   - And other configuration parameters
+
+   Example Usage:
+   curl -X POST "http://192.168.1.100/api/config" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "timezone_offset": 9.5,
+          "max_enabled_zones": 8,
+          "mqtt_broker": "172.17.254.10",
+          "mqtt_port": 1883
+        }'
+
+   Response: JSON confirmation
+
+================================================================================
+SCHEDULE MANAGEMENT
+================================================================================
+
+10. GET ALL SCHEDULES
+    Endpoint: GET /api/schedules
+    Purpose:  Retrieve all configured irrigation schedules
+
+    Parameters: None
+
+    Example Usage:
+    curl "http://192.168.1.100/api/schedules"
+
+    Response: JSON array of schedule objects
+
+11. CREATE SCHEDULE
+    Endpoint: POST /api/schedules
+    Purpose:  Create a new irrigation schedule
+
+    Content-Type: application/json
+
+    Parameters (JSON body):
+    - zone: Zone number (1-16)
+    - days: Array of day numbers (1=Monday, 7=Sunday)
+    - start_hour: Start hour (0-23)
+    - start_minute: Start minute (0-59)
+    - duration: Duration in minutes
+    - enabled: Boolean (true/false)
+
+    Example Usage:
+    curl -X POST "http://192.168.1.100/api/schedules" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "zone": 1,
+           "days": [1,2,3,4,5],
+           "start_hour": 6,
+           "start_minute": 30,
+           "duration": 15,
+           "enabled": true
+         }'
+
+    Response: JSON confirmation with schedule ID
+
+12. GET ACTIVE ZONES
+    Endpoint: GET /api/schedules/active
+    Purpose:  Get information about currently running zones
+
+    Parameters: None
+
+    Example Usage:
+    curl "http://192.168.1.100/api/schedules/active"
+
+    Response: JSON array of active zone objects
+
+13. SET AI SCHEDULES
+    Endpoint: POST /api/schedules/ai
+    Purpose:  Set schedules generated by AI or automation systems
+
+    Content-Type: application/json
+
+    Parameters (JSON body):
+    - schedules: Array of schedule objects
+
+    Example Usage:
+    curl -X POST "http://192.168.1.100/api/schedules/ai" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "schedules": [
+             {
+               "zone": 1,
+               "start_time": "06:30",
+               "duration": 15,
+               "days": "MTWTFSS"
+             }
+           ]
+         }'
+
+    Response: JSON confirmation
+
+14. CLEAR AI SCHEDULES
+    Endpoint: DELETE /api/schedules/ai
+    Purpose:  Remove all AI-generated schedules
+
+    Parameters: None
+
+    Example Usage:
+    curl -X DELETE "http://192.168.1.100/api/schedules/ai"
+
+    Response: JSON confirmation
+
+================================================================================
+DEVICE STATUS AND CONTROL
+================================================================================
+
+15. GET DEVICE STATUS
+    Endpoint: GET /api/device/status
+    Purpose:  Get comprehensive device status in JSON format
+
+    Parameters: None
+
+    Example Usage:
+    curl "http://192.168.1.100/api/device/status"
+
+    Response: JSON object with detailed device information
+    Example:
+    {
+      "device_id": "esp32_irrigation",
+      "ip_address": "192.168.1.100",
+      "mac_address": "AA:BB:CC:DD:EE:FF",
+      "wifi_ssid": "MyNetwork",
+      "wifi_rssi": -45,
+      "heap_free": 180000,
+      "uptime": 3600000,
+      "firmware_version": "1.0.0"
+    }
+
+16. GET NEXT SCHEDULED EVENT
+    Endpoint: GET /api/device/next
+    Purpose:  Get information about the next scheduled irrigation event
+
+    Parameters: None
+
+    Example Usage:
+    curl "http://192.168.1.100/api/device/next"
+
+    Response: JSON object with next event details
+
+17. SEND DEVICE COMMAND
+    Endpoint: POST /api/device/command
+    Purpose:  Send control commands to the device
+
+    Content-Type: application/json
+
+    Parameters (JSON body):
+    - command: Command string
+
+    Available Commands:
+    - "restart": Restart the ESP32
+    - "rain_delay": Set rain delay (include minutes parameter)
+    - "clear_rain": Clear rain delay
+
+    Example Usage:
+    curl -X POST "http://192.168.1.100/api/device/command" \
+         -H "Content-Type: application/json" \
+         -d '{"command": "restart"}'
+
+    Response: JSON confirmation
+
+================================================================================
+PROGRAMMING EXAMPLES
+================================================================================
+
+PYTHON EXAMPLE:
+--------------
+import requests
+
+ESP32_IP = "192.168.1.100"
+
+# Start zone 3 for 20 minutes
+response = requests.get(f"http://{ESP32_IP}/api/start-zone?zone=3&time=20")
+print(response.text)
+
+# Get device status
+status = requests.get(f"http://{ESP32_IP}/api/device/status").json()
+print(f"Device: {status['device_id']}, IP: {status['ip_address']}")
+
+# Set configuration
+config = {
+    "timezone_offset": 9.5,
+    "max_enabled_zones": 8
+}
+response = requests.post(f"http://{ESP32_IP}/api/config", json=config)
+print(response.json())
+
+JAVASCRIPT/NODE.JS EXAMPLE:
+--------------------------
+const axios = require('axios');
+
+const ESP32_IP = "192.168.1.100";
+
+// Start zone 2 for 10 minutes
+axios.get(`http://${ESP32_IP}/api/start-zone?zone=2&time=10`)
+  .then(response => console.log(response.data))
+  .catch(error => console.error(error));
+
+// Get current time
+axios.get(`http://${ESP32_IP}/api/time`)
+  .then(response => console.log('Current time:', response.data))
+  .catch(error => console.error(error));
+
+BASH/CURL EXAMPLES:
+------------------
+# Start zone 1 for 15 minutes
+curl "http://192.168.1.100/api/start-zone?zone=1&time=15"
+
+# Stop all zones by stopping each individually
+for zone in {1..8}; do
+  curl "http://192.168.1.100/api/stop-zone?zone=$zone"
+done
+
+# Get system status
+curl "http://192.168.1.100/api/status"
+
+# Sync time with NTP
+curl "http://192.168.1.100/api/sync-ntp"
+
+================================================================================
+HOME AUTOMATION INTEGRATION
+================================================================================
+
+HOME ASSISTANT EXAMPLE:
+-----------------------
+# configuration.yaml
+rest_command:
+  start_garden_sprinkler:
+    url: "http://192.168.1.100/api/start-zone?zone=1&time=15"
+    method: GET
+
+  stop_garden_sprinkler:
+    url: "http://192.168.1.100/api/stop-zone?zone=1"
+    method: GET
+
+sensor:
+  - platform: rest
+    resource: http://192.168.1.100/api/device/status
+    name: "Irrigation Controller"
+    json_attributes:
+      - device_id
+      - ip_address
+      - wifi_rssi
+      - heap_free
+      - uptime
+
+NODE-RED EXAMPLE:
+----------------
+HTTP Request Node Configuration:
+- Method: GET
+- URL: http://192.168.1.100/api/start-zone
+- Parameters: {"zone": 2, "time": 10}
+
+Function Node to Process Response:
+msg.payload = {
+    "zone": msg.payload.zone,
+    "status": "started",
+    "duration": msg.payload.time
+};
+return msg;
+
+================================================================================
+ERROR HANDLING
+================================================================================
+
+HTTP STATUS CODES:
+- 200 OK: Request successful
+- 400 Bad Request: Invalid parameters
+- 404 Not Found: Endpoint not found
+- 500 Internal Server Error: Server error
+
+COMMON ERROR RESPONSES:
+- "Invalid zone number. Must be 1-16"
+- "Invalid time. Must be 1-240 minutes"
+- "Invalid program number. Must be 1-4"
+- "Missing required parameters"
+
+================================================================================
+SECURITY CONSIDERATIONS
+================================================================================
+
+- No authentication currently implemented
+- API accessible to any device on same network
+- Use network security (firewall/VPN) for protection
+- Consider HTTPS proxy for remote access
+- Monitor API access logs for unusual activity
+
+================================================================================
+TECHNICAL NOTES
+================================================================================
+
+- All GET requests can be made via browser
+- POST requests require proper Content-Type headers
+- JSON responses are formatted for easy parsing
+- Rate limiting not currently implemented
+- Maximum concurrent connections: Limited by ESP32 hardware
+- Request timeout: 30 seconds
+- Maximum payload size: 1KB for JSON requests
+
+================================================================================
+VERSION INFORMATION
+================================================================================
+
+API Version: 1.0.0
+Firmware Compatibility: ESP32 Irrigation Controller v1.0.0
+Last Updated: November 1, 2025
+Documentation Format: Plain Text Reference
+
+================================================================================

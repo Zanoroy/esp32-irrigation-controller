@@ -125,7 +125,7 @@ const char* password = WIFI_PASSWORD;
 
 Modify pin assignments in `include/hunter_esp32.h`:
 ```cpp
-#define HUNTER_PIN 16    // Communication pin
+#define HUNTER_PIN 15    // Communication pin
 ```
 
 And in `src/main.cpp`:

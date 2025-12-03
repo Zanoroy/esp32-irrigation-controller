@@ -12,9 +12,7 @@
 #define SHORT_INTERVAL 208
 #define LONG_INTERVAL 1875
 
-// ESP32 D1 Mini compatible pin assignment
-#define HUNTER_PIN 16 // GPIO16 - same as ESP8266 for compatibility
-// Optional pins for ESP32 D1 Mini:
+#define HUNTER_PIN 12 // GPIO12 - same as ESP8266 for compatibility
 // #define ENABLE_PIN 17 // GPIO17 - if needed
 // #define LED_PIN 2     // GPIO2 - Built-in LED on ESP32
 

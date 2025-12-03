@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="API Documentation" />
+  <meta name="dcterms.date" content="2025-11-06" />
+  <title>ESP32 Irrigation Controller - Complete API Documentation</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">ESP32 Irrigation Controller - Complete API
+Documentation</h1>
+<p class="author">API Documentation</p>
+<p class="date">November 6, 2025</p>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#executive-summary" id="toc-executive-summary">Executive
+Summary</a></li>
+<li><a href="#mqtt-interface-documentation"
+id="toc-mqtt-interface-documentation">1. MQTT Interface
+Documentation</a>
+<ul>
+<li><a href="#overview" id="toc-overview">1.1 Overview</a>
+<ul>
+<li><a href="#connection-details" id="toc-connection-details">Connection
+Details</a></li>
+<li><a href="#topic-hierarchy" id="toc-topic-hierarchy">Topic
+Hierarchy</a></li>
+</ul></li>
+<li><a href="#published-topics-device-broker"
+id="toc-published-topics-device-broker">1.2 Published Topics (Device →
+Broker)</a>
+<ul>
+<li><a href="#device-configuration" id="toc-device-configuration">1.2.1
+Device Configuration</a></li>
+<li><a href="#device-status" id="toc-device-status">1.2.2 Device
+Status</a></li>
+<li><a href="#schedule-status" id="toc-schedule-status">1.2.3 Schedule
+Status</a></li>
+<li><a href="#zone-status-individual"
+id="toc-zone-status-individual">1.2.4 Zone Status (Individual)</a></li>
+<li><a href="#configuration-status" id="toc-configuration-status">1.2.5
+Configuration Status</a></li>
+<li><a href="#home-assistant-discovery"
+id="toc-home-assistant-discovery">1.2.6 Home Assistant
+Discovery</a></li>
+</ul></li>
+<li><a href="#subscribed-topics-broker-device"
+id="toc-subscribed-topics-broker-device">1.3 Subscribed Topics (Broker →
+Device)</a>
+<ul>
+<li><a href="#configuration-commands"
+id="toc-configuration-commands">1.3.1 Configuration Commands</a></li>
+<li><a href="#device-commands" id="toc-device-commands">1.3.2 Device
+Commands</a></li>
+<li><a href="#schedule-management" id="toc-schedule-management">1.3.3
+Schedule Management</a></li>
+<li><a href="#ai-schedule-management"
+id="toc-ai-schedule-management">1.3.4 AI Schedule Management</a></li>
+</ul></li>
+<li><a href="#mqtt-integration-examples"
+id="toc-mqtt-integration-examples">1.4 MQTT Integration Examples</a>
+<ul>
+<li><a href="#python-with-paho-mqtt"
+id="toc-python-with-paho-mqtt">1.4.1 Python with Paho MQTT</a></li>
+<li><a href="#node-red-flow" id="toc-node-red-flow">1.4.2 Node-RED
+Flow</a></li>
+<li><a href="#home-assistant-configuration"
+id="toc-home-assistant-configuration">1.4.3 Home Assistant
+Configuration</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#rest-api-documentation" id="toc-rest-api-documentation">2.
+REST API Documentation</a>
+<ul>
+<li><a href="#overview-1" id="toc-overview-1">2.1 Overview</a>
+<ul>
+<li><a href="#base-url" id="toc-base-url">Base URL</a></li>
+<li><a href="#response-formats" id="toc-response-formats">Response
+Formats</a></li>
+</ul></li>
+<li><a href="#zone-control-endpoints"
+id="toc-zone-control-endpoints">2.2 Zone Control Endpoints</a>
+<ul>
+<li><a href="#start-zone" id="toc-start-zone">2.2.1 START ZONE</a></li>
+<li><a href="#stop-zone" id="toc-stop-zone">2.2.2 STOP ZONE</a></li>
+</ul></li>
+<li><a href="#program-control" id="toc-program-control">2.3 Program
+Control</a>
+<ul>
+<li><a href="#run-program" id="toc-run-program">2.3.1 RUN
+PROGRAM</a></li>
+</ul></li>
+<li><a href="#time-and-clock-management"
+id="toc-time-and-clock-management">2.4 Time and Clock Management</a>
+<ul>
+<li><a href="#get-current-time" id="toc-get-current-time">2.4.1 GET
+CURRENT TIME</a></li>
+<li><a href="#set-time" id="toc-set-time">2.4.2 SET TIME</a></li>
+<li><a href="#sync-with-ntp" id="toc-sync-with-ntp">2.4.3 SYNC WITH
+NTP</a></li>
+</ul></li>
+<li><a href="#system-status-and-information"
+id="toc-system-status-and-information">2.5 System Status and
+Information</a>
+<ul>
+<li><a href="#get-system-status" id="toc-get-system-status">2.5.1 GET
+SYSTEM STATUS</a></li>
+<li><a href="#get-device-status" id="toc-get-device-status">2.5.2 GET
+DEVICE STATUS</a></li>
+</ul></li>
+<li><a href="#configuration-management"
+id="toc-configuration-management">2.6 Configuration Management</a>
+<ul>
+<li><a href="#get-configuration" id="toc-get-configuration">2.6.1 GET
+CONFIGURATION</a></li>
+<li><a href="#set-configuration" id="toc-set-configuration">2.6.2 SET
+CONFIGURATION</a></li>
+<li><a href="#get-mqtt-configuration"
+id="toc-get-mqtt-configuration">2.6.3 GET MQTT CONFIGURATION</a></li>
+<li><a href="#set-mqtt-configuration"
+id="toc-set-mqtt-configuration">2.6.4 SET MQTT CONFIGURATION</a></li>
+</ul></li>
+<li><a href="#schedule-management-1" id="toc-schedule-management-1">2.7
+Schedule Management</a>
+<ul>
+<li><a href="#get-all-schedules" id="toc-get-all-schedules">2.7.1 GET
+ALL SCHEDULES</a></li>
+<li><a href="#create-schedule" id="toc-create-schedule">2.7.2 CREATE
+SCHEDULE</a></li>
+<li><a href="#get-active-zones" id="toc-get-active-zones">2.7.3 GET
+ACTIVE ZONES</a></li>
+<li><a href="#set-ai-schedules" id="toc-set-ai-schedules">2.7.4 SET AI
+SCHEDULES</a></li>
+<li><a href="#clear-ai-schedules" id="toc-clear-ai-schedules">2.7.5
+CLEAR AI SCHEDULES</a></li>
+</ul></li>
+<li><a href="#device-commands-1" id="toc-device-commands-1">2.8 Device
+Commands</a>
+<ul>
+<li><a href="#get-next-scheduled-event"
+id="toc-get-next-scheduled-event">2.8.1 GET NEXT SCHEDULED
+EVENT</a></li>
+<li><a href="#send-device-command" id="toc-send-device-command">2.8.2
+SEND DEVICE COMMAND</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#improvement-suggestions"
+id="toc-improvement-suggestions">3. Improvement Suggestions</a>
+<ul>
+<li><a href="#mqtt-interface-improvements"
+id="toc-mqtt-interface-improvements">3.1 MQTT Interface Improvements</a>
+<ul>
+<li><a href="#high-priority" id="toc-high-priority">3.1.1 High
+Priority</a></li>
+<li><a href="#medium-priority" id="toc-medium-priority">3.1.2 Medium
+Priority</a></li>
+<li><a href="#low-priority" id="toc-low-priority">3.1.3 Low
+Priority</a></li>
+</ul></li>
+<li><a href="#rest-api-improvements" id="toc-rest-api-improvements">3.2
+REST API Improvements</a>
+<ul>
+<li><a href="#high-priority-1" id="toc-high-priority-1">3.2.1 High
+Priority</a></li>
+<li><a href="#medium-priority-1" id="toc-medium-priority-1">3.2.2 Medium
+Priority</a></li>
+<li><a href="#low-priority-1" id="toc-low-priority-1">3.2.3 Low
+Priority</a></li>
+</ul></li>
+<li><a href="#general-system-improvements"
+id="toc-general-system-improvements">3.3 General System Improvements</a>
+<ul>
+<li><a href="#security" id="toc-security">3.3.1 Security</a></li>
+<li><a href="#reliability" id="toc-reliability">3.3.2
+Reliability</a></li>
+<li><a href="#monitoring" id="toc-monitoring">3.3.3 Monitoring</a></li>
+<li><a href="#usability" id="toc-usability">3.3.4 Usability</a></li>
+</ul></li>
+<li><a href="#protocol-comparison" id="toc-protocol-comparison">3.4
+Protocol Comparison</a></li>
+<li><a href="#implementation-priority-matrix"
+id="toc-implementation-priority-matrix">3.5 Implementation Priority
+Matrix</a></li>
+</ul></li>
+<li><a href="#appendices" id="toc-appendices">4. Appendices</a>
+<ul>
+<li><a href="#complete-topic-reference"
+id="toc-complete-topic-reference">4.1 Complete Topic Reference</a>
+<ul>
+<li><a href="#published-topics" id="toc-published-topics">Published
+Topics</a></li>
+<li><a href="#subscribed-topics" id="toc-subscribed-topics">Subscribed
+Topics</a></li>
+</ul></li>
+<li><a href="#complete-rest-endpoint-reference"
+id="toc-complete-rest-endpoint-reference">4.2 Complete REST Endpoint
+Reference</a>
+<ul>
+<li><a href="#zone-control" id="toc-zone-control">Zone Control</a></li>
+<li><a href="#program-control-1" id="toc-program-control-1">Program
+Control</a></li>
+<li><a href="#time-management" id="toc-time-management">Time
+Management</a></li>
+<li><a href="#status" id="toc-status">Status</a></li>
+<li><a href="#configuration"
+id="toc-configuration">Configuration</a></li>
+<li><a href="#schedules" id="toc-schedules">Schedules</a></li>
+<li><a href="#commands" id="toc-commands">Commands</a></li>
+</ul></li>
+<li><a href="#error-codes-reference" id="toc-error-codes-reference">4.3
+Error Codes Reference</a>
+<ul>
+<li><a href="#http-status-codes" id="toc-http-status-codes">HTTP Status
+Codes</a></li>
+<li><a href="#mqtt-result-payloads" id="toc-mqtt-result-payloads">MQTT
+Result Payloads</a></li>
+</ul></li>
+<li><a href="#testing-checklist" id="toc-testing-checklist">4.4 Testing
+Checklist</a>
+<ul>
+<li><a href="#mqtt-testing" id="toc-mqtt-testing">MQTT Testing</a></li>
+<li><a href="#rest-api-testing" id="toc-rest-api-testing">REST API
+Testing</a></li>
+<li><a href="#integration-testing"
+id="toc-integration-testing">Integration Testing</a></li>
+</ul></li>
+<li><a href="#troubleshooting-guide" id="toc-troubleshooting-guide">4.5
+Troubleshooting Guide</a>
+<ul>
+<li><a href="#mqtt-connection-issues"
+id="toc-mqtt-connection-issues">MQTT Connection Issues</a></li>
+<li><a href="#rest-api-issues" id="toc-rest-api-issues">REST API
+Issues</a></li>
+<li><a href="#system-issues" id="toc-system-issues">System
+Issues</a></li>
+</ul></li>
+<li><a href="#support-and-resources" id="toc-support-and-resources">4.6
+Support and Resources</a>
+<ul>
+<li><a href="#documentation"
+id="toc-documentation">Documentation</a></li>
+<li><a href="#community-support" id="toc-community-support">Community
+Support</a></li>
+<li><a href="#development-tools" id="toc-development-tools">Development
+Tools</a></li>
+</ul></li>
+<li><a href="#glossary" id="toc-glossary">4.7 Glossary</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="executive-summary">Executive Summary</h1>
+<p>This document provides comprehensive documentation for the ESP32
+Irrigation Controller’s communication interfaces, including both MQTT
+and REST API protocols. The system supports real-time monitoring, zone
+control, scheduling, and configuration management through both
+interfaces.</p>
+<p><strong>Key Features:</strong> - Dual interface support (MQTT + REST
+API) - Real-time zone control and monitoring - Automated scheduling with
+RTC synchronization - Home automation integration (Home Assistant,
+Node-RED) - Network-based configuration management</p>
+<hr />
+<h1 id="mqtt-interface-documentation">1. MQTT Interface
+Documentation</h1>
+<h2 id="overview">1.1 Overview</h2>
+<p>The MQTT interface provides publish/subscribe messaging for real-time
+monitoring and control of the irrigation system. It supports automatic
+device discovery, periodic status updates, and bidirectional
+communication.</p>
+<h3 id="connection-details">Connection Details</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Default Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Protocol</td>
+<td>MQTT v3.1.1</td>
+<td>Standard MQTT protocol</td>
+</tr>
+<tr class="even">
+<td>Port</td>
+<td>1883</td>
+<td>Default MQTT port (configurable)</td>
+</tr>
+<tr class="odd">
+<td>Client ID</td>
+<td><code>esp32_irrigation_[MAC]</code></td>
+<td>Unique identifier per device</td>
+</tr>
+<tr class="even">
+<td>Keep Alive</td>
+<td>60 seconds</td>
+<td>Connection keep-alive interval</td>
+</tr>
+<tr class="odd">
+<td>QoS</td>
+<td>0 (At most once)</td>
+<td>Message delivery quality</td>
+</tr>
+<tr class="even">
+<td>Retain</td>
+<td>Configurable</td>
+<td>Message retention on broker</td>
+</tr>
+</tbody>
+</table>
+<h3 id="topic-hierarchy">Topic Hierarchy</h3>
+<p>All topics follow the pattern:
+<code>{prefix}/{device_id}/{category}/{subcategory}</code></p>
+<p>Default prefix: <code>irrigation/</code><br />
+Default device ID: <code>esp32_irrigation</code></p>
+<hr />
+<h2 id="published-topics-device-broker">1.2 Published Topics (Device →
+Broker)</h2>
+<h3 id="device-configuration">1.2.1 Device Configuration</h3>
+<p><strong>Topic:</strong>
+<code>irrigation/esp32_irrigation/config/device</code><br />
+<strong>Frequency:</strong> Every minute on the minute (RTC
+synchronized)<br />
+<strong>Retain:</strong> Yes (configurable)</p>
+<p><strong>Payload Structure:</strong></p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;device_id&quot;</span><span class="fu">:</span> <span class="st">&quot;esp32_irrigation&quot;</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;client_id&quot;</span><span class="fu">:</span> <span class="st">&quot;esp32_irrigation_AABBCCDDEEFF&quot;</span><span class="fu">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ip_address&quot;</span><span class="fu">:</span> <span class="st">&quot;192.168.1.100&quot;</span><span class="fu">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mac_address&quot;</span><span class="fu">:</span> <span class="st">&quot;AA:BB:CC:DD:EE:FF&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;wifi_ssid&quot;</span><span class="fu">:</span> <span class="st">&quot;MyNetwork&quot;</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;wifi_rssi&quot;</span><span class="fu">:</span> <span class="dv">-45</span><span class="fu">,</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;heap_free&quot;</span><span class="fu">:</span> <span class="dv">180000</span><span class="fu">,</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-11-06T14:30:00+09:30&quot;</span><span class="fu">,</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;uptime&quot;</span><span class="fu">:</span> <span class="dv">3600000</span><span class="fu">,</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;firmware_version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_broker&quot;</span><span class="fu">:</span> <span class="st">&quot;172.17.254.10&quot;</span><span class="fu">,</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_port&quot;</span><span class="fu">:</span> <span class="dv">1883</span><span class="fu">,</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;topic_prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation/&quot;</span><span class="fu">,</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timezone&quot;</span><span class="fu">:</span> <span class="fl">9.5</span><span class="fu">,</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max_zones&quot;</span><span class="fu">:</span> <span class="dv">8</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Field Descriptions:</strong> - <code>device_id</code>: Unique
+device identifier - <code>ip_address</code>: Current IP address on
+network - <code>wifi_rssi</code>: Signal strength in dBm (closer to 0 is
+better) - <code>heap_free</code>: Available RAM in bytes -
+<code>timestamp</code>: ISO 8601 format with timezone offset -
+<code>uptime</code>: Milliseconds since boot</p>
+<hr />
+<h3 id="device-status">1.2.2 Device Status</h3>
+<p><strong>Topic:</strong>
+<code>irrigation/esp32_irrigation/status/device</code><br />
+<strong>Frequency:</strong> Every minute on the minute<br />
+<strong>Retain:</strong> Yes (configurable)</p>
+<p><strong>Payload Structure:</strong></p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;zones&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;active&quot;</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;time_remaining&quot;</span><span class="fu">:</span> <span class="dv">900</span><span class="fu">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_time&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-11-06T14:00:00&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;rain_delay&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schedule_enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;active_program&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-11-06T14:30:00+09:30&quot;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Zone Status Values:</strong> - <code>idle</code>: Zone not
+running - <code>active</code>: Zone currently watering -
+<code>scheduled</code>: Zone scheduled to start - <code>paused</code>:
+Zone paused by rain delay</p>
+<hr />
+<h3 id="schedule-status">1.2.3 Schedule Status</h3>
+<p><strong>Topic:</strong>
+<code>irrigation/esp32_irrigation/status/schedules</code><br />
+<strong>Frequency:</strong> On change + every minute<br />
+<strong>Retain:</strong> Yes</p>
+<p><strong>Payload Structure:</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schedules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;days&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="dv">1</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">,</span> <span class="dv">3</span><span class="ot">,</span> <span class="dv">4</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_hour&quot;</span><span class="fu">:</span> <span class="dv">6</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_minute&quot;</span><span class="fu">:</span> <span class="dv">30</span><span class="fu">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;duration&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;next_run&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-11-07T06:30:00+09:30&quot;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;total_schedules&quot;</span><span class="fu">:</span> <span class="dv">8</span><span class="fu">,</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;active_schedules&quot;</span><span class="fu">:</span> <span class="dv">5</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Day Encoding:</strong> - 1 = Monday, 2 = Tuesday, … 7 =
+Sunday</p>
+<hr />
+<h3 id="zone-status-individual">1.2.4 Zone Status (Individual)</h3>
+<p><strong>Topic:</strong>
+<code>irrigation/esp32_irrigation/status/zone/{zone_number}</code><br />
+<strong>Frequency:</strong> On zone state change<br />
+<strong>Retain:</strong> No</p>
+<p><strong>Payload Structure:</strong></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;active&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;time_remaining&quot;</span><span class="fu">:</span> <span class="dv">900</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="dv">1699270200000</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="configuration-status">1.2.5 Configuration Status</h3>
+<p><strong>Topic:</strong>
+<code>irrigation/esp32_irrigation/status/config</code><br />
+<strong>Frequency:</strong> On configuration change<br />
+<strong>Retain:</strong> Yes</p>
+<p><strong>Payload Structure:</strong></p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timezone_offset&quot;</span><span class="fu">:</span> <span class="fl">9.5</span><span class="fu">,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max_enabled_zones&quot;</span><span class="fu">:</span> <span class="dv">8</span><span class="fu">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_broker&quot;</span><span class="fu">:</span> <span class="st">&quot;172.17.254.10&quot;</span><span class="fu">,</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_port&quot;</span><span class="fu">:</span> <span class="dv">1883</span><span class="fu">,</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_topic_prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation/&quot;</span><span class="fu">,</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_retain&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_keep_alive&quot;</span><span class="fu">:</span> <span class="dv">60</span><span class="fu">,</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;scheduling_enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="home-assistant-discovery">1.2.6 Home Assistant Discovery</h3>
+<p><strong>Topic:</strong>
+<code>homeassistant/switch/esp32_irrigation/config</code><br />
+<strong>Frequency:</strong> On connection<br />
+<strong>Retain:</strong> Yes</p>
+<p><strong>Payload Structure:</strong></p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;ESP32 Irrigation Controller&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;unique_id&quot;</span><span class="fu">:</span> <span class="st">&quot;esp32_irrigation&quot;</span><span class="fu">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;device_class&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation&quot;</span><span class="fu">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;state_topic&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation/esp32_irrigation/status/device&quot;</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;command_topic&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation/esp32_irrigation/command/status&quot;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="subscribed-topics-broker-device">1.3 Subscribed Topics (Broker →
+Device)</h2>
+<h3 id="configuration-commands">1.3.1 Configuration Commands</h3>
+<p><strong>Topic Pattern:</strong>
+<code>irrigation/esp32_irrigation/config/{setting}/set</code></p>
+<p><strong>Supported Settings:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Setting</th>
+<th>Payload Type</th>
+<th>Example</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>timezone</code></td>
+<td>Float</td>
+<td><code>9.5</code></td>
+<td>Timezone offset in hours</td>
+</tr>
+<tr class="even">
+<td><code>mqtt_broker</code></td>
+<td>String</td>
+<td><code>172.17.254.10</code></td>
+<td>MQTT broker address</td>
+</tr>
+<tr class="odd">
+<td><code>mqtt_port</code></td>
+<td>Integer</td>
+<td><code>1883</code></td>
+<td>MQTT broker port</td>
+</tr>
+<tr class="even">
+<td><code>mqtt_username</code></td>
+<td>String</td>
+<td><code>user</code></td>
+<td>Authentication username</td>
+</tr>
+<tr class="odd">
+<td><code>mqtt_topic_prefix</code></td>
+<td>String</td>
+<td><code>home/irrigation/</code></td>
+<td>Topic prefix</td>
+</tr>
+<tr class="even">
+<td><code>max_enabled_zones</code></td>
+<td>Integer</td>
+<td><code>8</code></td>
+<td>Maximum zones (1-16)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example:</strong></p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set timezone to Adelaide (UTC+9:30)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">mosquitto_pub</span> <span class="at">-h</span> 172.17.254.10 <span class="at">-t</span> <span class="st">&quot;irrigation/esp32_irrigation/config/timezone/set&quot;</span> <span class="at">-m</span> <span class="st">&quot;9.5&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Change max zones to 12</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">mosquitto_pub</span> <span class="at">-h</span> 172.17.254.10 <span class="at">-t</span> <span class="st">&quot;irrigation/esp32_irrigation/config/max_enabled_zones/set&quot;</span> <span class="at">-m</span> <span class="st">&quot;12&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong> Device publishes updated configuration to
+<code>irrigation/esp32_irrigation/status/config</code></p>
+<hr />
+<h3 id="device-commands">1.3.2 Device Commands</h3>
+<p><strong>Topic Pattern:</strong>
+<code>irrigation/esp32_irrigation/command/{command}</code></p>
+<p><strong>Available Commands:</strong></p>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 32%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Command</th>
+<th>Payload</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>restart</code></td>
+<td>Any</td>
+<td>Restart ESP32</td>
+<td><code>"restart"</code></td>
+</tr>
+<tr class="even">
+<td><code>status</code></td>
+<td>Any</td>
+<td>Request status update</td>
+<td><code>"status"</code></td>
+</tr>
+<tr class="odd">
+<td><code>rain_delay</code></td>
+<td>Integer</td>
+<td>Set rain delay in minutes</td>
+<td><code>120</code></td>
+</tr>
+<tr class="even">
+<td><code>clear_rain</code></td>
+<td>Any</td>
+<td>Clear rain delay</td>
+<td><code>"clear"</code></td>
+</tr>
+<tr class="odd">
+<td><code>enable_schedule</code></td>
+<td>Boolean</td>
+<td>Enable/disable scheduling</td>
+<td><code>true</code> or <code>1</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Restart the device</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">mosquitto_pub</span> <span class="at">-h</span> 172.17.254.10 <span class="at">-t</span> <span class="st">&quot;irrigation/esp32_irrigation/command/restart&quot;</span> <span class="at">-m</span> <span class="st">&quot;restart&quot;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Set 2-hour rain delay</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">mosquitto_pub</span> <span class="at">-h</span> 172.17.254.10 <span class="at">-t</span> <span class="st">&quot;irrigation/esp32_irrigation/command/rain_delay&quot;</span> <span class="at">-m</span> <span class="st">&quot;120&quot;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Request immediate status update</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="ex">mosquitto_pub</span> <span class="at">-h</span> 172.17.254.10 <span class="at">-t</span> <span class="st">&quot;irrigation/esp32_irrigation/command/status&quot;</span> <span class="at">-m</span> <span class="st">&quot;status&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable scheduling</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="ex">mosquitto_pub</span> <span class="at">-h</span> 172.17.254.10 <span class="at">-t</span> <span class="st">&quot;irrigation/esp32_irrigation/command/enable_schedule&quot;</span> <span class="at">-m</span> <span class="st">&quot;true&quot;</span></span></code></pre></div>
+<hr />
+<h3 id="schedule-management">1.3.3 Schedule Management</h3>
+<p><strong>Topic:</strong>
+<code>irrigation/esp32_irrigation/schedule/set</code><br />
+<strong>Payload:</strong> JSON schedule object</p>
+<p><strong>Structure:</strong></p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schedules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;days&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="dv">1</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">,</span> <span class="dv">3</span><span class="ot">,</span> <span class="dv">4</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_hour&quot;</span><span class="fu">:</span> <span class="dv">6</span><span class="fu">,</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_minute&quot;</span><span class="fu">:</span> <span class="dv">30</span><span class="fu">,</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;duration&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Response Topic:</strong>
+<code>irrigation/esp32_irrigation/schedule/result</code><br />
+<strong>Response Payload:</strong> <code>"success"</code> or
+<code>"error"</code></p>
+<p><strong>Example:</strong></p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mosquitto_pub</span> <span class="at">-h</span> 172.17.254.10 <span class="dt">\</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-t</span> <span class="st">&quot;irrigation/esp32_irrigation/schedule/set&quot;</span> <span class="dt">\</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-m</span> <span class="st">&#39;{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;schedules&quot;: [{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;zone&quot;: 2,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;days&quot;: [1,3,5],</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;start_hour&quot;: 18,</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;start_minute&quot;: 0,</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;duration&quot;: 20,</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;enabled&quot;: true</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="st">    }]</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span></span></code></pre></div>
+<hr />
+<h3 id="ai-schedule-management">1.3.4 AI Schedule Management</h3>
+<p><strong>Topic:</strong>
+<code>irrigation/esp32_irrigation/schedule/ai/set</code><br />
+<strong>Payload:</strong> JSON schedule array</p>
+<p><strong>Structure:</strong></p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schedules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_time&quot;</span><span class="fu">:</span> <span class="st">&quot;06:30&quot;</span><span class="fu">,</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;duration&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;days&quot;</span><span class="fu">:</span> <span class="st">&quot;MTWTFSS&quot;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Days Format:</strong>
+<code>M=Monday, T=Tuesday, W=Wednesday, T=Thursday, F=Friday, S=Saturday, S=Sunday</code></p>
+<p><strong>Response Topic:</strong>
+<code>irrigation/esp32_irrigation/schedule/ai/result</code><br />
+<strong>Response Payload:</strong> <code>"success"</code> or
+<code>"error"</code></p>
+<hr />
+<h2 id="mqtt-integration-examples">1.4 MQTT Integration Examples</h2>
+<h3 id="python-with-paho-mqtt">1.4.1 Python with Paho MQTT</h3>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> paho.mqtt.client <span class="im">as</span> mqtt</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>BROKER <span class="op">=</span> <span class="st">&quot;172.17.254.10&quot;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>PORT <span class="op">=</span> <span class="dv">1883</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>TOPIC_PREFIX <span class="op">=</span> <span class="st">&quot;irrigation/esp32_irrigation/&quot;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> on_connect(client, userdata, flags, rc):</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Connected with result code </span><span class="sc">{</span>rc<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Subscribe to all status topics</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    client.subscribe(TOPIC_PREFIX <span class="op">+</span> <span class="st">&quot;status/#&quot;</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    client.subscribe(TOPIC_PREFIX <span class="op">+</span> <span class="st">&quot;config/#&quot;</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> on_message(client, userdata, msg):</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Topic: </span><span class="sc">{</span>msg<span class="sc">.</span>topic<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        payload <span class="op">=</span> json.loads(msg.payload)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&quot;Payload: </span><span class="sc">{</span>json<span class="sc">.</span>dumps(payload, indent<span class="op">=</span><span class="dv">2</span>)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span>:</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&quot;Payload: </span><span class="sc">{</span>msg<span class="sc">.</span>payload<span class="sc">.</span>decode()<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>client <span class="op">=</span> mqtt.Client()</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>client.on_connect <span class="op">=</span> on_connect</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>client.on_message <span class="op">=</span> on_message</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>client.<span class="ex">connect</span>(BROKER, PORT, <span class="dv">60</span>)</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Set rain delay</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>client.publish(TOPIC_PREFIX <span class="op">+</span> <span class="st">&quot;command/rain_delay&quot;</span>, <span class="st">&quot;120&quot;</span>)</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Enable scheduling</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>client.publish(TOPIC_PREFIX <span class="op">+</span> <span class="st">&quot;command/enable_schedule&quot;</span>, <span class="st">&quot;true&quot;</span>)</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>client.loop_forever()</span></code></pre></div>
+<hr />
+<h3 id="node-red-flow">1.4.2 Node-RED Flow</h3>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ot">[</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;mqtt_in&quot;</span><span class="fu">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;mqtt in&quot;</span><span class="fu">,</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;topic&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation/esp32_irrigation/status/device&quot;</span><span class="fu">,</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;broker&quot;</span><span class="fu">:</span> <span class="st">&quot;172.17.254.10&quot;</span><span class="fu">,</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;qos&quot;</span><span class="fu">:</span> <span class="st">&quot;0&quot;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;parse_json&quot;</span><span class="fu">,</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;json&quot;</span><span class="fu">,</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;property&quot;</span><span class="fu">:</span> <span class="st">&quot;payload&quot;</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">{</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;store_db&quot;</span><span class="fu">,</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;sqlite&quot;</span><span class="fu">,</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;db&quot;</span><span class="fu">:</span> <span class="st">&quot;/root/.node-red/data/irrigation.db&quot;</span><span class="fu">,</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;sql&quot;</span><span class="fu">:</span> <span class="st">&quot;INSERT INTO device_status (ip_address, wifi_rssi, heap_free, uptime, timestamp) VALUES ($ip_address, $wifi_rssi, $heap_free, $uptime, $timestamp)&quot;</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="ot">]</span></span></code></pre></div>
+<hr />
+<h3 id="home-assistant-configuration">1.4.3 Home Assistant
+Configuration</h3>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># configuration.yaml</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mqtt</span><span class="kw">:</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">sensor</span><span class="kw">:</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Irrigation Controller Status&quot;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">state_topic</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;irrigation/esp32_irrigation/status/device&quot;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">value_template</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;{{ value_json.zones | length }}&quot;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">json_attributes_topic</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;irrigation/esp32_irrigation/config/device&quot;</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">json_attributes_template</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;{{ value_json | tojson }}&quot;</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Irrigation WiFi Signal&quot;</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">state_topic</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;irrigation/esp32_irrigation/config/device&quot;</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">value_template</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;{{ value_json.wifi_rssi }}&quot;</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">unit_of_measurement</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;dBm&quot;</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">device_class</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;signal_strength&quot;</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">switch</span><span class="kw">:</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Irrigation Scheduling&quot;</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">command_topic</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;irrigation/esp32_irrigation/command/enable_schedule&quot;</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">state_topic</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;irrigation/esp32_irrigation/status/config&quot;</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">value_template</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;{{ value_json.scheduling_enabled }}&quot;</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">payload_on</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;true&quot;</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">payload_off</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;false&quot;</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="fu">automation</span><span class="kw">:</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">alias</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;Rain Delay on Weather Alert&quot;</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">trigger</span><span class="kw">:</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">platform</span><span class="kw">:</span><span class="at"> state</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">entity_id</span><span class="kw">:</span><span class="at"> weather.home</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">to</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;rainy&#39;</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">action</span><span class="kw">:</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">service</span><span class="kw">:</span><span class="at"> mqtt.publish</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">data</span><span class="kw">:</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">topic</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;irrigation/esp32_irrigation/command/rain_delay&quot;</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">payload</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;120&quot;</span></span></code></pre></div>
+<hr />
+<h1 id="rest-api-documentation">2. REST API Documentation</h1>
+<h2 id="overview-1">2.1 Overview</h2>
+<p>The REST API provides HTTP-based access to all irrigation controller
+functions. It supports both GET and POST methods, with JSON and
+form-encoded data.</p>
+<h3 id="base-url">Base URL</h3>
+<pre><code>http://[ESP32_IP_ADDRESS]/api/</code></pre>
+<p><strong>Example:</strong> <code>http://192.168.1.100/api/</code></p>
+<h3 id="response-formats">Response Formats</h3>
+<ul>
+<li><strong>Success Responses:</strong> Plain text or JSON</li>
+<li><strong>Error Responses:</strong> Plain text error messages</li>
+<li><strong>HTTP Status Codes:</strong> Standard HTTP codes (200, 400,
+404, 500)</li>
+</ul>
+<hr />
+<h2 id="zone-control-endpoints">2.2 Zone Control Endpoints</h2>
+<h3 id="start-zone">2.2.1 START ZONE</h3>
+<p>Start a specific irrigation zone for a specified duration.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/start-zone</code></p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Type</th>
+<th>Required</th>
+<th>Range</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>zone</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>1-16</td>
+<td>Zone number</td>
+</tr>
+<tr class="even">
+<td><code>time</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>1-240</td>
+<td>Duration in minutes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/start-zone?zone=3&amp;time=15&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<pre><code>Zone 3 started for 15 minutes</code></pre>
+<p><strong>Python Example:</strong></p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> requests.get(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;http://192.168.1.100/api/start-zone&quot;</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    params<span class="op">=</span>{<span class="st">&quot;zone&quot;</span>: <span class="dv">3</span>, <span class="st">&quot;time&quot;</span>: <span class="dv">15</span>}</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(response.text)</span></code></pre></div>
+<p><strong>JavaScript Example:</strong></p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fetch</span>(<span class="st">&#39;http://192.168.1.100/api/start-zone?zone=3&amp;time=15&#39;</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">then</span>(response <span class="kw">=&gt;</span> response<span class="op">.</span><span class="fu">text</span>())</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">.</span><span class="fu">then</span>(data <span class="kw">=&gt;</span> <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(data))<span class="op">;</span></span></code></pre></div>
+<hr />
+<h3 id="stop-zone">2.2.2 STOP ZONE</h3>
+<p>Stop a specific irrigation zone immediately.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/stop-zone</code></p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Type</th>
+<th>Required</th>
+<th>Range</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>zone</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>1-16</td>
+<td>Zone number</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/stop-zone?zone=3&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<pre><code>Zone 3 stopped</code></pre>
+<hr />
+<h2 id="program-control">2.3 Program Control</h2>
+<h3 id="run-program">2.3.1 RUN PROGRAM</h3>
+<p>Execute a pre-configured irrigation program.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/run-program</code></p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Type</th>
+<th>Required</th>
+<th>Range</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>program</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>1-4</td>
+<td>Program number</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/run-program?program=1&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<pre><code>Program 1 started</code></pre>
+<hr />
+<h2 id="time-and-clock-management">2.4 Time and Clock Management</h2>
+<h3 id="get-current-time">2.4.1 GET CURRENT TIME</h3>
+<p>Retrieve current RTC time.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/time</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/time&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<pre><code>2025-11-06 14:30:00</code></pre>
+<hr />
+<h3 id="set-time">2.4.2 SET TIME</h3>
+<p>Manually set the RTC time.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/set-time</code></p>
+<p><strong>Content-Type:</strong>
+<code>application/x-www-form-urlencoded</code></p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Type</th>
+<th>Required</th>
+<th>Range</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>year</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>2020-2099</td>
+<td>Year</td>
+</tr>
+<tr class="even">
+<td><code>month</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>1-12</td>
+<td>Month</td>
+</tr>
+<tr class="odd">
+<td><code>day</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>1-31</td>
+<td>Day</td>
+</tr>
+<tr class="even">
+<td><code>hour</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>0-23</td>
+<td>Hour</td>
+</tr>
+<tr class="odd">
+<td><code>minute</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>0-59</td>
+<td>Minute</td>
+</tr>
+<tr class="even">
+<td><code>second</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>0-59</td>
+<td>Second</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://192.168.1.100/api/set-time&quot;</span> <span class="dt">\</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">-H</span> <span class="st">&quot;Content-Type: application/x-www-form-urlencoded&quot;</span> <span class="dt">\</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">-d</span> <span class="st">&quot;year=2025&amp;month=11&amp;day=6&amp;hour=14&amp;minute=30&amp;second=0&quot;</span></span></code></pre></div>
+<hr />
+<h3 id="sync-with-ntp">2.4.3 SYNC WITH NTP</h3>
+<p>Synchronize RTC with Network Time Protocol servers.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/sync-ntp</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/sync-ntp&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<pre><code>Time synchronized with NTP server</code></pre>
+<hr />
+<h2 id="system-status-and-information">2.5 System Status and
+Information</h2>
+<h3 id="get-system-status">2.5.1 GET SYSTEM STATUS</h3>
+<p>Retrieve comprehensive system status information in HTML format.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/status</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/status&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong> HTML formatted system information</p>
+<hr />
+<h3 id="get-device-status">2.5.2 GET DEVICE STATUS</h3>
+<p>Get comprehensive device status in JSON format.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/device/status</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/device/status&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;device_id&quot;</span><span class="fu">:</span> <span class="st">&quot;esp32_irrigation&quot;</span><span class="fu">,</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;ip_address&quot;</span><span class="fu">:</span> <span class="st">&quot;192.168.1.100&quot;</span><span class="fu">,</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mac_address&quot;</span><span class="fu">:</span> <span class="st">&quot;AA:BB:CC:DD:EE:FF&quot;</span><span class="fu">,</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;wifi_ssid&quot;</span><span class="fu">:</span> <span class="st">&quot;MyNetwork&quot;</span><span class="fu">,</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;wifi_rssi&quot;</span><span class="fu">:</span> <span class="dv">-45</span><span class="fu">,</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;heap_free&quot;</span><span class="fu">:</span> <span class="dv">180000</span><span class="fu">,</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;uptime&quot;</span><span class="fu">:</span> <span class="dv">3600000</span><span class="fu">,</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;firmware_version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;zones&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;idle&quot;</span><span class="fu">,</span></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;time_remaining&quot;</span><span class="fu">:</span> <span class="dv">0</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h2 id="configuration-management">2.6 Configuration Management</h2>
+<h3 id="get-configuration">2.6.1 GET CONFIGURATION</h3>
+<p>Retrieve current system configuration.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/config</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/config&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timezone_offset&quot;</span><span class="fu">:</span> <span class="fl">9.5</span><span class="fu">,</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;max_enabled_zones&quot;</span><span class="fu">:</span> <span class="dv">8</span><span class="fu">,</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_broker&quot;</span><span class="fu">:</span> <span class="st">&quot;172.17.254.10&quot;</span><span class="fu">,</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_port&quot;</span><span class="fu">:</span> <span class="dv">1883</span><span class="fu">,</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_topic_prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation/&quot;</span><span class="fu">,</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_retain&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_keep_alive&quot;</span><span class="fu">:</span> <span class="dv">60</span><span class="fu">,</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;scheduling_enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="set-configuration">2.6.2 SET CONFIGURATION</h3>
+<p>Update system configuration settings.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/config</code></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Parameters (JSON body):</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>timezone_offset</code></td>
+<td>Float</td>
+<td>Timezone offset in hours</td>
+</tr>
+<tr class="even">
+<td><code>max_enabled_zones</code></td>
+<td>Integer</td>
+<td>Maximum zones (1-16)</td>
+</tr>
+<tr class="odd">
+<td><code>mqtt_broker</code></td>
+<td>String</td>
+<td>MQTT broker address</td>
+</tr>
+<tr class="even">
+<td><code>mqtt_port</code></td>
+<td>Integer</td>
+<td>MQTT broker port</td>
+</tr>
+<tr class="odd">
+<td><code>mqtt_enabled</code></td>
+<td>Boolean</td>
+<td>Enable MQTT</td>
+</tr>
+<tr class="even">
+<td><code>scheduling_enabled</code></td>
+<td>Boolean</td>
+<td>Enable scheduling</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://192.168.1.100/api/config&quot;</span> <span class="dt">\</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;timezone_offset&quot;: 9.5,</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;max_enabled_zones&quot;: 8,</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;mqtt_broker&quot;: &quot;172.17.254.10&quot;,</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;mqtt_port&quot;: 1883</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="st">     }&#39;</span></span></code></pre></div>
+<hr />
+<h3 id="get-mqtt-configuration">2.6.3 GET MQTT CONFIGURATION</h3>
+<p>Retrieve MQTT-specific configuration.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/mqtt/config</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/mqtt/config&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_broker&quot;</span><span class="fu">:</span> <span class="st">&quot;172.17.254.10&quot;</span><span class="fu">,</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_port&quot;</span><span class="fu">:</span> <span class="dv">1883</span><span class="fu">,</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_username&quot;</span><span class="fu">:</span> <span class="st">&quot;user&quot;</span><span class="fu">,</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_topic_prefix&quot;</span><span class="fu">:</span> <span class="st">&quot;irrigation/&quot;</span><span class="fu">,</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_retain&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mqtt_keep_alive&quot;</span><span class="fu">:</span> <span class="dv">60</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="set-mqtt-configuration">2.6.4 SET MQTT CONFIGURATION</h3>
+<p>Update MQTT-specific configuration.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/mqtt/config</code></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://192.168.1.100/api/mqtt/config&quot;</span> <span class="dt">\</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;mqtt_broker&quot;: &quot;172.17.254.20&quot;,</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;mqtt_port&quot;: 1883,</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;mqtt_username&quot;: &quot;newuser&quot;,</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;mqtt_password&quot;: &quot;newpass&quot;</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="st">     }&#39;</span></span></code></pre></div>
+<hr />
+<h2 id="schedule-management-1">2.7 Schedule Management</h2>
+<h3 id="get-all-schedules">2.7.1 GET ALL SCHEDULES</h3>
+<p>Retrieve all configured irrigation schedules.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/schedules</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/schedules&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schedules&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;days&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="dv">1</span><span class="ot">,</span> <span class="dv">2</span><span class="ot">,</span> <span class="dv">3</span><span class="ot">,</span> <span class="dv">4</span><span class="ot">,</span> <span class="dv">5</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_hour&quot;</span><span class="fu">:</span> <span class="dv">6</span><span class="fu">,</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_minute&quot;</span><span class="fu">:</span> <span class="dv">30</span><span class="fu">,</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;duration&quot;</span><span class="fu">:</span> <span class="dv">15</span><span class="fu">,</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;enabled&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="create-schedule">2.7.2 CREATE SCHEDULE</h3>
+<p>Create a new irrigation schedule.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/schedules</code></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>zone</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>Zone number (1-16)</td>
+</tr>
+<tr class="even">
+<td><code>days</code></td>
+<td>Array</td>
+<td>Yes</td>
+<td>Days of week (1-7)</td>
+</tr>
+<tr class="odd">
+<td><code>start_hour</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>Start hour (0-23)</td>
+</tr>
+<tr class="even">
+<td><code>start_minute</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>Start minute (0-59)</td>
+</tr>
+<tr class="odd">
+<td><code>duration</code></td>
+<td>Integer</td>
+<td>Yes</td>
+<td>Duration in minutes</td>
+</tr>
+<tr class="even">
+<td><code>enabled</code></td>
+<td>Boolean</td>
+<td>Yes</td>
+<td>Enable schedule</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://192.168.1.100/api/schedules&quot;</span> <span class="dt">\</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;zone&quot;: 1,</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;days&quot;: [1,2,3,4,5],</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;start_hour&quot;: 6,</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;start_minute&quot;: 30,</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;duration&quot;: 15,</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;enabled&quot;: true</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a><span class="st">     }&#39;</span></span></code></pre></div>
+<hr />
+<h3 id="get-active-zones">2.7.3 GET ACTIVE ZONES</h3>
+<p>Get information about currently running zones.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/schedules/active</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/schedules/active&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;active_zones&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">3</span><span class="fu">,</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;time_remaining&quot;</span><span class="fu">:</span> <span class="dv">840</span><span class="fu">,</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;start_time&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-11-06T14:00:00+09:30&quot;</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="set-ai-schedules">2.7.4 SET AI SCHEDULES</h3>
+<p>Set schedules generated by AI or automation systems.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/schedules/ai</code></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://192.168.1.100/api/schedules/ai&quot;</span> <span class="dt">\</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>     <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="st">       &quot;schedules&quot;: [</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="st">         {</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="st">           &quot;zone&quot;: 1,</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a><span class="st">           &quot;start_time&quot;: &quot;06:30&quot;,</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a><span class="st">           &quot;duration&quot;: 15,</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="st">           &quot;days&quot;: &quot;MTWTFSS&quot;</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="st">         }</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a><span class="st">       ]</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a><span class="st">     }&#39;</span></span></code></pre></div>
+<hr />
+<h3 id="clear-ai-schedules">2.7.5 CLEAR AI SCHEDULES</h3>
+<p>Remove all AI-generated schedules.</p>
+<p><strong>Endpoint:</strong> <code>DELETE /api/schedules/ai</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb44"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> DELETE <span class="st">&quot;http://192.168.1.100/api/schedules/ai&quot;</span></span></code></pre></div>
+<hr />
+<h2 id="device-commands-1">2.8 Device Commands</h2>
+<h3 id="get-next-scheduled-event">2.8.1 GET NEXT SCHEDULED EVENT</h3>
+<p>Get information about the next scheduled irrigation event.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/device/next</code></p>
+<p><strong>Parameters:</strong> None</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb45"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="st">&quot;http://192.168.1.100/api/device/next&quot;</span></span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb46"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;next_event&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;zone&quot;</span><span class="fu">:</span> <span class="dv">2</span><span class="fu">,</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;scheduled_time&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-11-07T06:30:00+09:30&quot;</span><span class="fu">,</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;duration&quot;</span><span class="fu">:</span> <span class="dv">15</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="send-device-command">2.8.2 SEND DEVICE COMMAND</h3>
+<p>Send control commands to the device.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/device/command</code></p>
+<p><strong>Content-Type:</strong> <code>application/json</code></p>
+<p><strong>Available Commands:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Command</th>
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>restart</code></td>
+<td>None</td>
+<td>Restart ESP32</td>
+</tr>
+<tr class="even">
+<td><code>rain_delay</code></td>
+<td><code>minutes</code> (Integer)</td>
+<td>Set rain delay</td>
+</tr>
+<tr class="odd">
+<td><code>clear_rain</code></td>
+<td>None</td>
+<td>Clear rain delay</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb47"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Restart device</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://192.168.1.100/api/device/command&quot;</span> <span class="dt">\</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>     <span class="at">-d</span> <span class="st">&#39;{&quot;command&quot;: &quot;restart&quot;}&#39;</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Set rain delay</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://192.168.1.100/api/device/command&quot;</span> <span class="dt">\</span></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>     <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>     <span class="at">-d</span> <span class="st">&#39;{&quot;command&quot;: &quot;rain_delay&quot;, &quot;minutes&quot;: 120}&#39;</span></span></code></pre></div>
+<hr />
+<h1 id="improvement-suggestions">3. Improvement Suggestions</h1>
+<h2 id="mqtt-interface-improvements">3.1 MQTT Interface
+Improvements</h2>
+<h3 id="high-priority">3.1.1 High Priority</h3>
+<ol type="1">
+<li><strong>Add Zone Control via MQTT</strong>
+<ul>
+<li><strong>Current Gap:</strong> Zone start/stop operations only
+available via REST API</li>
+<li><strong>Recommendation:</strong> Add command topics for zone
+control</li>
+</ul>
+<pre><code>Topic: irrigation/esp32_irrigation/command/zone/start
+Payload: {&quot;zone&quot;: 1, &quot;duration&quot;: 15}
+
+Topic: irrigation/esp32_irrigation/command/zone/stop
+Payload: {&quot;zone&quot;: 1}</code></pre></li>
+<li><strong>Implement MQTT Authentication</strong>
+<ul>
+<li><strong>Current:</strong> Password stored but not enforced in some
+paths</li>
+<li><strong>Recommendation:</strong> Mandatory authentication with
+username/password</li>
+<li>Add TLS/SSL support for encrypted connections</li>
+</ul></li>
+<li><strong>Add QoS Level Configuration</strong>
+<ul>
+<li><strong>Current:</strong> Fixed QoS 0 (fire and forget)</li>
+<li><strong>Recommendation:</strong> Configurable QoS levels (0, 1, 2)
+for critical messages</li>
+<li>Use QoS 1 for commands, QoS 0 for status updates</li>
+</ul></li>
+<li><strong>Implement Last Will and Testament (LWT)</strong>
+<ul>
+<li><strong>Current:</strong> No offline detection</li>
+<li><strong>Recommendation:</strong></li>
+</ul>
+<pre><code>LWT Topic: irrigation/esp32_irrigation/status/availability
+LWT Payload: &quot;offline&quot;
+Online Payload: &quot;online&quot;</code></pre></li>
+</ol>
+<h3 id="medium-priority">3.1.2 Medium Priority</h3>
+<ol start="5" type="1">
+<li><strong>Add Message Timestamps</strong>
+<ul>
+<li>Include UTC timestamp in all published messages</li>
+<li>Enable time-series analysis and late message detection</li>
+</ul></li>
+<li><strong>Implement Batch Status Updates</strong>
+<ul>
+<li>Reduce MQTT traffic by batching non-critical updates</li>
+<li>Configurable batch interval (1-60 seconds)</li>
+</ul></li>
+<li><strong>Add Diagnostic Topics</strong>
+<ul>
+<li>Publish error logs, warnings, and debug information</li>
+</ul>
+<pre><code>Topic: irrigation/esp32_irrigation/diagnostic/error
+Topic: irrigation/esp32_irrigation/diagnostic/warning</code></pre></li>
+<li><strong>Implement Command Acknowledgments</strong>
+<ul>
+<li>Publish ACK/NACK for all received commands</li>
+</ul>
+<pre><code>Topic: irrigation/esp32_irrigation/command/ack
+Payload: {&quot;command&quot;: &quot;zone_start&quot;, &quot;status&quot;: &quot;success&quot;, &quot;message&quot;: &quot;Zone 1 started&quot;}</code></pre></li>
+</ol>
+<h3 id="low-priority">3.1.3 Low Priority</h3>
+<ol start="9" type="1">
+<li><strong>Add Historical Data Topics</strong>
+<ul>
+<li>Publish daily/weekly summaries</li>
+<li>Water usage statistics per zone</li>
+</ul></li>
+<li><strong>Implement Remote Logging</strong>
+<ul>
+<li>Forward system logs via MQTT for centralized monitoring</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="rest-api-improvements">3.2 REST API Improvements</h2>
+<h3 id="high-priority-1">3.2.1 High Priority</h3>
+<ol type="1">
+<li><strong>Add Authentication and Authorization</strong>
+<ul>
+<li><strong>Current:</strong> No authentication</li>
+<li><strong>Recommendation:</strong>
+<ul>
+<li>API key authentication via header:
+<code>X-API-Key: your_key</code></li>
+<li>Optional username/password with JWT tokens</li>
+<li>Role-based access control (read-only, operator, admin)</li>
+</ul></li>
+</ul></li>
+<li><strong>Implement Rate Limiting</strong>
+<ul>
+<li><strong>Current:</strong> Unlimited requests</li>
+<li><strong>Recommendation:</strong>
+<ul>
+<li>Limit to 60 requests per minute per IP</li>
+<li>Return HTTP 429 (Too Many Requests) when exceeded</li>
+<li>Include <code>X-RateLimit-*</code> headers</li>
+</ul></li>
+</ul></li>
+<li><strong>Add Request/Response Validation</strong>
+<ul>
+<li><strong>Current:</strong> Limited input validation</li>
+<li><strong>Recommendation:</strong>
+<ul>
+<li>JSON schema validation for POST/PUT requests</li>
+<li>Detailed error messages with field-specific feedback</li>
+<li>Return HTTP 422 (Unprocessable Entity) for validation errors</li>
+</ul></li>
+</ul></li>
+<li><strong>Standardize JSON Response Format</strong>
+<ul>
+<li><strong>Current:</strong> Mix of plain text and JSON responses</li>
+<li><strong>Recommendation:</strong> Consistent JSON structure:</li>
+</ul>
+<div class="sourceCode" id="cb52"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;success&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;data&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="er">...</span> <span class="fu">},</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;Operation completed successfully&quot;</span><span class="fu">,</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-11-06T14:30:00Z&quot;</span></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div></li>
+<li><strong>Add HTTPS Support</strong>
+<ul>
+<li><strong>Current:</strong> HTTP only</li>
+<li><strong>Recommendation:</strong>
+<ul>
+<li>Self-signed certificate for local access</li>
+<li>Let’s Encrypt for internet-facing deployments</li>
+<li>Redirect HTTP to HTTPS</li>
+</ul></li>
+</ul></li>
+</ol>
+<h3 id="medium-priority-1">3.2.2 Medium Priority</h3>
+<ol start="6" type="1">
+<li><strong>Implement API Versioning</strong>
+<ul>
+<li><strong>Current:</strong> No versioning</li>
+<li><strong>Recommendation:</strong>
+<ul>
+<li>URL-based: <code>/api/v1/</code>, <code>/api/v2/</code></li>
+<li>Header-based:
+<code>Accept: application/vnd.irrigation.v1+json</code></li>
+<li>Maintain backward compatibility for at least one major version</li>
+</ul></li>
+</ul></li>
+<li><strong>Add Pagination for List Endpoints</strong>
+<ul>
+<li><strong>Current:</strong> Returns all records</li>
+<li><strong>Recommendation:</strong></li>
+</ul>
+<pre><code>GET /api/schedules?page=1&amp;limit=10
+Response: {
+  &quot;data&quot;: [...],
+  &quot;pagination&quot;: {
+    &quot;page&quot;: 1,
+    &quot;limit&quot;: 10,
+    &quot;total&quot;: 45,
+    &quot;pages&quot;: 5
+  }
+}</code></pre></li>
+<li><strong>Implement PATCH Method for Partial Updates</strong>
+<ul>
+<li><strong>Current:</strong> Only full object updates</li>
+<li><strong>Recommendation:</strong> Support partial updates</li>
+</ul>
+<div class="sourceCode" id="cb54"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="ex">PATCH</span> /api/config</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="ex">{</span><span class="st">&quot;max_enabled_zones&quot;</span><span class="ex">:</span> 12}</span></code></pre></div></li>
+<li><strong>Add Filtering and Sorting</strong>
+<ul>
+<li>Enable query parameters for list endpoints</li>
+</ul>
+<pre><code>GET /api/schedules?zone=1&amp;enabled=true&amp;sort=start_time</code></pre></li>
+<li><strong>Implement OPTIONS Method</strong>
+<ul>
+<li>Return available methods and parameters for each endpoint</li>
+<li>Support CORS for web applications</li>
+</ul></li>
+</ol>
+<h3 id="low-priority-1">3.2.3 Low Priority</h3>
+<ol start="11" type="1">
+<li><strong>Add Webhook Support</strong>
+<ul>
+<li>Allow registration of external URLs for event notifications</li>
+<li>POST to webhook URL on zone start/stop, errors, etc.</li>
+</ul></li>
+<li><strong>Implement GraphQL Endpoint</strong>
+<ul>
+<li>Alternative to REST for flexible data queries</li>
+<li>Single endpoint with query language</li>
+</ul></li>
+<li><strong>Add Bulk Operations</strong>
+<ul>
+<li>Start/stop multiple zones in single request</li>
+<li>Batch schedule creation</li>
+</ul></li>
+<li><strong>Implement ETag/Cache Headers</strong>
+<ul>
+<li>Support HTTP caching with ETag headers</li>
+<li>Reduce bandwidth for frequently accessed resources</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="general-system-improvements">3.3 General System
+Improvements</h2>
+<h3 id="security">3.3.1 Security</h3>
+<ol type="1">
+<li><strong>Network Security</strong>
+<ul>
+<li>Implement MAC address filtering</li>
+<li>Add firewall rules configuration via API</li>
+<li>Support VPN tunnel configuration</li>
+</ul></li>
+<li><strong>Audit Logging</strong>
+<ul>
+<li>Log all configuration changes</li>
+<li>Track zone activations with user/source</li>
+<li>Store logs locally and forward to syslog server</li>
+</ul></li>
+<li><strong>Secure Credential Storage</strong>
+<ul>
+<li>Encrypt stored passwords (MQTT, WiFi)</li>
+<li>Use secure element (if hardware supports)</li>
+</ul></li>
+</ol>
+<h3 id="reliability">3.3.2 Reliability</h3>
+<ol start="4" type="1">
+<li><strong>Watchdog Timer</strong>
+<ul>
+<li>Implement hardware watchdog for crash recovery</li>
+<li>Automatic restart on hang/freeze</li>
+</ul></li>
+<li><strong>Configuration Backup</strong>
+<ul>
+<li>Periodic backup to SD card or cloud</li>
+<li>Export/import configuration via API</li>
+</ul></li>
+<li><strong>Failsafe Modes</strong>
+<ul>
+<li>Manual override switch detection</li>
+<li>Fallback to default schedule on RTC failure</li>
+<li>Continue basic operations if MQTT/WiFi unavailable</li>
+</ul></li>
+</ol>
+<h3 id="monitoring">3.3.3 Monitoring</h3>
+<ol start="7" type="1">
+<li><p><strong>Health Check Endpoint</strong></p>
+<pre><code>GET /api/health
+Response: {
+  &quot;status&quot;: &quot;healthy&quot;,
+  &quot;checks&quot;: {
+    &quot;rtc&quot;: &quot;ok&quot;,
+    &quot;wifi&quot;: &quot;ok&quot;,
+    &quot;mqtt&quot;: &quot;connected&quot;,
+    &quot;memory&quot;: &quot;ok&quot;
+  }
+}</code></pre></li>
+<li><p><strong>Metrics Endpoint</strong></p>
+<ul>
+<li>Prometheus-compatible metrics</li>
+<li>Zone run counts, durations, error rates</li>
+</ul>
+<pre><code>GET /api/metrics</code></pre></li>
+<li><p><strong>Alert Configuration</strong></p>
+<ul>
+<li>Define alert conditions (low memory, connection loss)</li>
+<li>Send alerts via MQTT, email, or push notification</li>
+</ul></li>
+</ol>
+<h3 id="usability">3.3.4 Usability</h3>
+<ol start="10" type="1">
+<li><strong>Web Dashboard</strong>
+<ul>
+<li>Built-in web interface served by ESP32</li>
+<li>Real-time zone status visualization</li>
+<li>Configuration UI</li>
+</ul></li>
+<li><strong>Schedule Templates</strong>
+<ul>
+<li>Pre-defined schedule templates (lawn, garden, etc.)</li>
+<li>Import/export schedules</li>
+</ul></li>
+<li><strong>Zone Grouping</strong>
+<ul>
+<li>Create zone groups for simultaneous control</li>
+<li>Master valve support</li>
+</ul></li>
+<li><strong>Water Budget/Flow Tracking</strong>
+<ul>
+<li>Integrate with flow meters</li>
+<li>Track water consumption per zone</li>
+<li>Budget-based scheduling adjustments</li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="protocol-comparison">3.4 Protocol Comparison</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th>MQTT</th>
+<th>REST API</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Zone Control</strong></td>
+<td>❌ Missing</td>
+<td>✅ Available</td>
+<td>Add to MQTT</td>
+</tr>
+<tr class="even">
+<td><strong>Real-time Updates</strong></td>
+<td>✅ Pub/Sub</td>
+<td>❌ Polling</td>
+<td>Keep MQTT</td>
+</tr>
+<tr class="odd">
+<td><strong>Authentication</strong></td>
+<td>⚠️ Partial</td>
+<td>❌ None</td>
+<td>Implement both</td>
+</tr>
+<tr class="even">
+<td><strong>Bidirectional</strong></td>
+<td>✅ Yes</td>
+<td>⚠️ Request only</td>
+<td>Keep MQTT</td>
+</tr>
+<tr class="odd">
+<td><strong>Browser Compatible</strong></td>
+<td>❌ No</td>
+<td>✅ Yes</td>
+<td>Keep REST</td>
+</tr>
+<tr class="even">
+<td><strong>Bandwidth Efficiency</strong></td>
+<td>✅ High</td>
+<td>⚠️ Medium</td>
+<td>Prefer MQTT</td>
+</tr>
+<tr class="odd">
+<td><strong>Learning Curve</strong></td>
+<td>⚠️ Moderate</td>
+<td>✅ Easy</td>
+<td>Support both</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Summary:</strong> Maintain both interfaces with feature
+parity. Use MQTT for real-time monitoring and automation, REST API for
+manual control and web interfaces.</p>
+<hr />
+<h2 id="implementation-priority-matrix">3.5 Implementation Priority
+Matrix</h2>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 31%" />
+<col style="width: 33%" />
+<col style="width: 17%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Priority</th>
+<th>MQTT Improvements</th>
+<th>REST Improvements</th>
+<th>Timeline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Critical</strong></td>
+<td>Add zone control commands</td>
+<td>Add authentication</td>
+<td>1-2 weeks</td>
+</tr>
+<tr class="even">
+<td><strong>High</strong></td>
+<td>Implement LWT, QoS config</td>
+<td>Add HTTPS, rate limiting</td>
+<td>2-4 weeks</td>
+</tr>
+<tr class="odd">
+<td><strong>Medium</strong></td>
+<td>Add diagnostics, ACKs</td>
+<td>Standardize responses, versioning</td>
+<td>1-2 months</td>
+</tr>
+<tr class="even">
+<td><strong>Low</strong></td>
+<td>Historical data topics</td>
+<td>GraphQL, webhooks</td>
+<td>3-6 months</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="appendices">4. Appendices</h1>
+<h2 id="complete-topic-reference">4.1 Complete Topic Reference</h2>
+<h3 id="published-topics">Published Topics</h3>
+<pre><code>irrigation/esp32_irrigation/config/device
+irrigation/esp32_irrigation/status/device
+irrigation/esp32_irrigation/status/schedules
+irrigation/esp32_irrigation/status/zone/{1-16}
+irrigation/esp32_irrigation/status/config
+homeassistant/switch/esp32_irrigation/config</code></pre>
+<h3 id="subscribed-topics">Subscribed Topics</h3>
+<pre><code>irrigation/esp32_irrigation/config/{setting}/set
+irrigation/esp32_irrigation/command/{command}
+irrigation/esp32_irrigation/schedule/set
+irrigation/esp32_irrigation/schedule/ai/set</code></pre>
+<hr />
+<h2 id="complete-rest-endpoint-reference">4.2 Complete REST Endpoint
+Reference</h2>
+<h3 id="zone-control">Zone Control</h3>
+<ul>
+<li><code>GET /api/start-zone?zone={n}&amp;time={m}</code></li>
+<li><code>GET /api/stop-zone?zone={n}</code></li>
+</ul>
+<h3 id="program-control-1">Program Control</h3>
+<ul>
+<li><code>GET /api/run-program?program={n}</code></li>
+</ul>
+<h3 id="time-management">Time Management</h3>
+<ul>
+<li><code>GET /api/time</code></li>
+<li><code>POST /api/set-time</code></li>
+<li><code>GET /api/sync-ntp</code></li>
+</ul>
+<h3 id="status">Status</h3>
+<ul>
+<li><code>GET /api/status</code></li>
+<li><code>GET /api/device/status</code></li>
+<li><code>GET /api/device/next</code></li>
+</ul>
+<h3 id="configuration">Configuration</h3>
+<ul>
+<li><code>GET /api/config</code></li>
+<li><code>POST /api/config</code></li>
+<li><code>GET /api/mqtt/config</code></li>
+<li><code>POST /api/mqtt/config</code></li>
+</ul>
+<h3 id="schedules">Schedules</h3>
+<ul>
+<li><code>GET /api/schedules</code></li>
+<li><code>POST /api/schedules</code></li>
+<li><code>GET /api/schedules/active</code></li>
+<li><code>POST /api/schedules/ai</code></li>
+<li><code>DELETE /api/schedules/ai</code></li>
+</ul>
+<h3 id="commands">Commands</h3>
+<ul>
+<li><code>POST /api/device/command</code></li>
+</ul>
+<hr />
+<h2 id="error-codes-reference">4.3 Error Codes Reference</h2>
+<h3 id="http-status-codes">HTTP Status Codes</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>200</td>
+<td>Success</td>
+<td>Request completed successfully</td>
+</tr>
+<tr class="even">
+<td>400</td>
+<td>Bad Request</td>
+<td>Invalid zone number</td>
+</tr>
+<tr class="odd">
+<td>401</td>
+<td>Unauthorized</td>
+<td>Authentication required (future)</td>
+</tr>
+<tr class="even">
+<td>404</td>
+<td>Not Found</td>
+<td>Endpoint does not exist</td>
+</tr>
+<tr class="odd">
+<td>422</td>
+<td>Unprocessable Entity</td>
+<td>Validation error (future)</td>
+</tr>
+<tr class="even">
+<td>429</td>
+<td>Too Many Requests</td>
+<td>Rate limit exceeded (future)</td>
+</tr>
+<tr class="odd">
+<td>500</td>
+<td>Internal Server Error</td>
+<td>System error</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mqtt-result-payloads">MQTT Result Payloads</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Payload</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>success</code></td>
+<td>Command executed successfully</td>
+</tr>
+<tr class="even">
+<td><code>error</code></td>
+<td>Command failed</td>
+</tr>
+<tr class="odd">
+<td><code>invalid</code></td>
+<td>Invalid parameters</td>
+</tr>
+<tr class="even">
+<td><code>timeout</code></td>
+<td>Operation timed out</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="testing-checklist">4.4 Testing Checklist</h2>
+<h3 id="mqtt-testing">MQTT Testing</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Connect to broker with
+credentials</label></li>
+<li><label><input type="checkbox" />Subscribe to all status
+topics</label></li>
+<li><label><input type="checkbox" />Verify periodic status updates
+(every minute)</label></li>
+<li><label><input type="checkbox" />Send configuration change
+command</label></li>
+<li><label><input type="checkbox" />Send device restart
+command</label></li>
+<li><label><input type="checkbox" />Set rain delay via MQTT</label></li>
+<li><label><input type="checkbox" />Update schedule via
+MQTT</label></li>
+<li><label><input type="checkbox" />Verify LWT message on
+disconnect</label></li>
+<li><label><input type="checkbox" />Test QoS levels</label></li>
+<li><label><input type="checkbox" />Verify retained messages
+persist</label></li>
+</ul>
+<h3 id="rest-api-testing">REST API Testing</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Start zone via GET
+request</label></li>
+<li><label><input type="checkbox" />Stop zone via GET
+request</label></li>
+<li><label><input type="checkbox" />Run program via GET
+request</label></li>
+<li><label><input type="checkbox" />Get current time</label></li>
+<li><label><input type="checkbox" />Set time via POST</label></li>
+<li><label><input type="checkbox" />Sync with NTP</label></li>
+<li><label><input type="checkbox" />Get device status JSON</label></li>
+<li><label><input type="checkbox" />Get configuration JSON</label></li>
+<li><label><input type="checkbox" />Update configuration via
+POST</label></li>
+<li><label><input type="checkbox" />Create new schedule via
+POST</label></li>
+<li><label><input type="checkbox" />Get active zones</label></li>
+<li><label><input type="checkbox" />Set AI schedules</label></li>
+<li><label><input type="checkbox" />Clear AI schedules</label></li>
+<li><label><input type="checkbox" />Get next scheduled
+event</label></li>
+<li><label><input type="checkbox" />Send device commands</label></li>
+</ul>
+<h3 id="integration-testing">Integration Testing</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Control zone via REST, verify MQTT
+status update</label></li>
+<li><label><input type="checkbox" />Configure via MQTT, verify via REST
+API</label></li>
+<li><label><input type="checkbox" />Test Home Assistant
+integration</label></li>
+<li><label><input type="checkbox" />Test Node-RED flows</label></li>
+<li><label><input type="checkbox" />Verify timezone
+handling</label></li>
+<li><label><input type="checkbox" />Test RTC
+synchronization</label></li>
+<li><label><input type="checkbox" />Verify schedule
+execution</label></li>
+<li><label><input type="checkbox" />Test rain delay
+functionality</label></li>
+</ul>
+<hr />
+<h2 id="troubleshooting-guide">4.5 Troubleshooting Guide</h2>
+<h3 id="mqtt-connection-issues">MQTT Connection Issues</h3>
+<p><strong>Problem:</strong> Device not connecting to broker</p>
+<p><strong>Solutions:</strong> 1. Verify broker IP and port:
+<code>ping 172.17.254.10</code> 2. Check credentials if authentication
+enabled 3. Verify firewall allows port 1883 4. Check broker logs:
+<code>journalctl -u mosquitto -f</code> 5. Test broker:
+<code>mosquitto_pub -h 172.17.254.10 -t test -m "hello"</code></p>
+<p><strong>Problem:</strong> Messages not received</p>
+<p><strong>Solutions:</strong> 1. Verify subscription:
+<code>mosquitto_sub -h 172.17.254.10 -t "irrigation/#" -v</code> 2.
+Check topic prefix configuration 3. Verify retain flag settings 4. Check
+buffer size (must be ≥ payload size)</p>
+<h3 id="rest-api-issues">REST API Issues</h3>
+<p><strong>Problem:</strong> 404 Not Found</p>
+<p><strong>Solutions:</strong> 1. Verify correct IP address 2. Check
+endpoint path (case-sensitive) 3. Ensure <code>/api/</code> prefix
+included 4. Verify device is on network:
+<code>ping 192.168.1.100</code></p>
+<p><strong>Problem:</strong> No response / timeout</p>
+<p><strong>Solutions:</strong> 1. Check ESP32 is powered and running 2.
+Verify WiFi connection 3. Check firewall rules 4. Try different
+network/device</p>
+<h3 id="system-issues">System Issues</h3>
+<p><strong>Problem:</strong> Schedules not running</p>
+<p><strong>Solutions:</strong> 1. Verify RTC time:
+<code>GET /api/time</code> 2. Check schedule enabled:
+<code>GET /api/config</code> 3. Verify timezone offset 4. Check rain
+delay status 5. Review schedule configuration</p>
+<p><strong>Problem:</strong> High memory usage</p>
+<p><strong>Solutions:</strong> 1. Reduce MQTT publish frequency 2.
+Decrease buffer sizes 3. Limit number of active schedules 4. Restart
+device to clear memory leaks</p>
+<hr />
+<h2 id="support-and-resources">4.6 Support and Resources</h2>
+<h3 id="documentation">Documentation</h3>
+<ul>
+<li>GitHub Repository:
+https://github.com/Zanoroy/esp32-irrigation-controller</li>
+<li>API Reference: This document</li>
+<li>Source Code: See repository <code>/src</code> directory</li>
+</ul>
+<h3 id="community-support">Community Support</h3>
+<ul>
+<li>GitHub Issues: Report bugs and request features</li>
+<li>Email Support: (To be configured)</li>
+</ul>
+<h3 id="development-tools">Development Tools</h3>
+<ul>
+<li>PlatformIO: ESP32 development environment</li>
+<li>MQTT Explorer: GUI MQTT client for testing</li>
+<li>Postman: REST API testing tool</li>
+<li>curl: Command-line HTTP client</li>
+<li>mosquitto_pub/sub: MQTT command-line tools</li>
+</ul>
+<hr />
+<h2 id="glossary">4.7 Glossary</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 66%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>MQTT</strong></td>
+<td>Message Queuing Telemetry Transport - lightweight pub/sub
+protocol</td>
+</tr>
+<tr class="even">
+<td><strong>REST</strong></td>
+<td>Representational State Transfer - HTTP-based API architecture</td>
+</tr>
+<tr class="odd">
+<td><strong>QoS</strong></td>
+<td>Quality of Service - MQTT message delivery guarantee level</td>
+</tr>
+<tr class="even">
+<td><strong>LWT</strong></td>
+<td>Last Will and Testament - MQTT message sent on unexpected
+disconnect</td>
+</tr>
+<tr class="odd">
+<td><strong>RTC</strong></td>
+<td>Real-Time Clock - hardware clock for timekeeping</td>
+</tr>
+<tr class="even">
+<td><strong>NTP</strong></td>
+<td>Network Time Protocol - internet time synchronization</td>
+</tr>
+<tr class="odd">
+<td><strong>JSON</strong></td>
+<td>JavaScript Object Notation - data interchange format</td>
+</tr>
+<tr class="even">
+<td><strong>API</strong></td>
+<td>Application Programming Interface</td>
+</tr>
+<tr class="odd">
+<td><strong>ESP32</strong></td>
+<td>Microcontroller with WiFi and Bluetooth capabilities</td>
+</tr>
+<tr class="even">
+<td><strong>Home Assistant</strong></td>
+<td>Open-source home automation platform</td>
+</tr>
+<tr class="odd">
+<td><strong>Node-RED</strong></td>
+<td>Flow-based automation tool</td>
+</tr>
+<tr class="even">
+<td><strong>ISO 8601</strong></td>
+<td>International date/time format standard</td>
+</tr>
+<tr class="odd">
+<td><strong>JWT</strong></td>
+<td>JSON Web Token - authentication token format</td>
+</tr>
+<tr class="even">
+<td><strong>CORS</strong></td>
+<td>Cross-Origin Resource Sharing - browser security mechanism</td>
+</tr>
+<tr class="odd">
+<td><strong>TLS/SSL</strong></td>
+<td>Transport Layer Security - encryption protocol</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Document Version:</strong> 1.0<br />
+<strong>Last Updated:</strong> November 6, 2025<br />
+<strong>Firmware Version:</strong> 1.0.0<br />
+<strong>API Version:</strong> 1.0</p>
+<hr />
+<p><em>End of Documentation</em></p>
+</body>
+</html>

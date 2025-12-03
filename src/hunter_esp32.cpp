@@ -9,7 +9,7 @@
 // val - value to write
 // len - len in bits of the value
 /////////////////////////////////////////////////////////////////////////////
-void HunterBitfield(std::vector <byte>& bits, byte pos, byte val, byte len)
+void HunterBitfield(std::vector<byte> &bits, byte pos, byte val, byte len)
 {
   while (len > 0)
   {
@@ -35,9 +35,9 @@ void HunterBitfield(std::vector <byte>& bits, byte pos, byte val, byte len)
 void HunterLow(void)
 {
   digitalWrite(HUNTER_PIN, HUNTER_ONE);
-  delayMicroseconds(SHORT_INTERVAL); //microseconds
+  delayMicroseconds(SHORT_INTERVAL); // microseconds
   digitalWrite(HUNTER_PIN, HUNTER_ZERO);
-  delayMicroseconds(LONG_INTERVAL); //microseconds
+  delayMicroseconds(LONG_INTERVAL); // microseconds
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -48,9 +48,9 @@ void HunterLow(void)
 void HunterHigh(void)
 {
   digitalWrite(HUNTER_PIN, HUNTER_ONE);
-  delayMicroseconds(LONG_INTERVAL); //microseconds
+  delayMicroseconds(LONG_INTERVAL); // microseconds
   digitalWrite(HUNTER_PIN, HUNTER_ZERO);
-  delayMicroseconds(SHORT_INTERVAL); //microseconds
+  delayMicroseconds(SHORT_INTERVAL); // microseconds
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -59,19 +59,19 @@ void HunterHigh(void)
 // Arguments: buffer - blob containing the bits to transmit
 // extrabit - if true, then write an extra 1 bit
 /////////////////////////////////////////////////////////////////////////////
-void HunterWrite(std::vector <byte> buffer, bool extrabit)
+void HunterWrite(std::vector<byte> buffer, bool extrabit)
 {
   // Bus start sequence - Reset pulse
   digitalWrite(HUNTER_PIN, HUNTER_ONE);
-  delay(325); //milliseconds
+  delay(325); // milliseconds
   digitalWrite(HUNTER_PIN, HUNTER_ZERO);
-  delay(65); //milliseconds
+  delay(65); // milliseconds
 
   // Start pulse
   digitalWrite(HUNTER_PIN, HUNTER_ONE);
-  delayMicroseconds(START_INTERVAL); //microseconds
+  delayMicroseconds(START_INTERVAL); // microseconds
   digitalWrite(HUNTER_PIN, HUNTER_ZERO);
-  delayMicroseconds(SHORT_INTERVAL); //microseconds
+  delayMicroseconds(SHORT_INTERVAL); // microseconds
 
   // Write the bits out
   for (auto &sendByte : buffer)
@@ -79,14 +79,7 @@ void HunterWrite(std::vector <byte> buffer, bool extrabit)
     for (byte inner = 0; inner < 8; inner++)
     {
       // Send high order bits first
-      if (sendByte & 0x80)
-      {
-        HunterHigh();
-      }
-      else
-      {
-        HunterLow();
-      }
+      (sendByte & 0x80) ? HunterHigh() : HunterLow();
       sendByte <<= 1;
     }
   }
@@ -116,7 +109,7 @@ void HunterStart(byte zone, byte time)
   Serial.println(" min");
 
   // Start out with a base frame
-  std::vector <byte> buffer = {0xff,0x00,0x00,0x00,0x10,0x00,0x00,0x04,0x00,0x00,0x01,0x00,0x01,0xb8,0x3f};
+  std::vector<byte> buffer = {0xff, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x04, 0x00, 0x00, 0x01, 0x00, 0x01, 0xb8, 0x3f};
 
   if (zone < 1 || zone > 48)
   {
@@ -202,7 +195,7 @@ void HunterProgram(byte num)
   Serial.println(num);
 
   // Start with a basic program frame
-  std::vector <byte> buffer = {0xff, 0x40, 0x03, 0x96, 0x09 ,0xbd ,0x7f};
+  std::vector<byte> buffer = {0xff, 0x40, 0x03, 0x96, 0x09, 0xbd, 0x7f};
 
   if (num < 1 || num > 4)
   {

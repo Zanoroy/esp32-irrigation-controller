@@ -152,7 +152,6 @@ bool MQTTManager::reconnect() {
         lastMinutePublished = -1;  // Reset to force immediate status publish
         subscribeToTopics();
         Serial.println("MQTT: Publishing initial status...");
-        publishDiscovery();
         publishStatus();
         Serial.println("MQTT: Publishing Configuration...");
         publishDeviceConfig();  // Publish device configuration including IP
@@ -289,7 +288,7 @@ void MQTTManager::handleScheduleMessage(const String& topic, const String& paylo
 }
 
 String MQTTManager::buildTopic(const String& suffix) {
-    return topicPrefix + deviceId + "/" + suffix;
+    return topicPrefix + client_id + "/" + suffix;
 }
 
 String MQTTManager::buildConfigTopic(const String& setting) {
@@ -398,39 +397,12 @@ void MQTTManager::publishDeviceConfig() {
     String topic = buildTopic("config/device");
     bool retain = configManager->isMQTTRetainMessages();
 
-    // Serial.println("MQTT: Publishing to topic: " + topic);
-    // Serial.println("MQTT: JSON payload length: " + String(json.length()));
-    // Serial.println("MQTT: Payload: " + json);
-    // Serial.println("MQTT: Retain: " + String(retain));
-
     bool published = mqttClient.publish(topic.c_str(), json.c_str(), retain);
-    // Serial.println("MQTT: Publish result: " + String(published));
 
     if (!published) {
-    //     Serial.println("MQTT: Successfully published device configuration to " + topic);
-    // } else {
         Serial.println("MQTT: Failed to publish device configuration to " + topic);
         Serial.println("MQTT: MQTT client state: " + String(mqttClient.state()));
     }
-}
-
-void MQTTManager::publishDiscovery() {
-    if (!isConnected) return;
-
-    // Home Assistant auto-discovery
-    JsonDocument doc;
-    doc["name"] = "ESP32 Irrigation Controller";
-    doc["unique_id"] = deviceId;
-    doc["device_class"] = "irrigation";
-    doc["state_topic"] = buildStatusTopic("device");
-    doc["command_topic"] = buildTopic("command/status");
-
-    String json;
-    serializeJson(doc, json);
-
-    String discoveryTopic = "homeassistant/switch/" + deviceId + "/config";
-    mqttClient.publish(discoveryTopic.c_str(), json.c_str(), true);
-    Serial.println("MQTT: Published discovery information");
 }
 
 bool MQTTManager::isClientConnected() {

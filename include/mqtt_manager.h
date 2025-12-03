@@ -65,7 +65,6 @@ public:
     void publishScheduleStatus();
     void publishConfig();
     void publishDeviceConfig();  // Publish device configuration including IP
-    void publishDiscovery(); // Home Assistant auto-discovery
 
     // Configuration
     void updateConfig();
