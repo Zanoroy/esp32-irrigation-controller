@@ -69,9 +69,16 @@ public:
     void setDeviceId(const String& id);
 
     // Schedule fetching
+    bool fetchSchedule(int days = 1, int8_t zoneId = -1);  // Unified fetch method (1-5 days)
     bool fetch5DaySchedule(int8_t zoneId = -1);  // Fetch 5-day rolling lookahead
     bool fetchDailySchedule(const String& date, int8_t zoneId = -1);
     bool fetchTodaySchedule();
+
+    // SPIFFS caching for offline resilience
+    bool cacheScheduleToSPIFFS(const String& date, const String& json);
+    bool loadScheduleFromCache(const String& date);
+    bool loadLatestCachedSchedule();
+    bool clearOldCache(int daysToKeep = 7);
 
     // Event completion reporting
     bool reportCompletion(const EventCompletion& completion);

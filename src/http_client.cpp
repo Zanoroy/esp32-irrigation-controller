@@ -2,6 +2,7 @@
 #include "config_manager.h"
 #include "schedule_manager.h"
 #include "rtc_module.h"
+#include <SPIFFS.h>
 
 HTTPScheduleClient::HTTPScheduleClient() {
     configManager = nullptr;
@@ -20,6 +21,29 @@ bool HTTPScheduleClient::begin(ConfigManager* config, ScheduleManager* schedule)
     if (!configManager || !scheduleManager) {
         Serial.println("HTTP Client: Invalid managers provided");
         return false;
+    }
+
+    // Initialize SPIFFS for schedule caching
+    if (!SPIFFS.begin(true)) {  // true = format if mount fails
+        Serial.println("HTTP Client: WARNING - SPIFFS mount failed");
+        Serial.println("  Schedule caching will be disabled");
+    } else {
+        Serial.println("HTTP Client: SPIFFS initialized for caching");
+        Serial.println("  Total: " + String(SPIFFS.totalBytes()/1024) + " KB");
+        Serial.println("  Used: " + String(SPIFFS.usedBytes()/1024) + " KB");
+
+        // Create /schedules directory if it doesn't exist
+        if (!SPIFFS.exists("/schedules")) {
+            // SPIFFS doesn't have mkdir, but we can create a dummy file to establish the path
+            File dir = SPIFFS.open("/schedules/.init", "w");
+            if (dir) {
+                dir.close();
+                Serial.println("  Created /schedules cache directory");
+            }
+        }
+
+        // Clean up old cache files (keep last 7 days)
+        clearOldCache(7);
     }
 
     // Get device ID from MAC address if available
@@ -560,6 +584,217 @@ bool HTTPScheduleClient::reportEventStart(uint32_t scheduleId, uint8_t zoneId, c
     } else {
         Serial.println("HTTP Client: Failed to report event start - " + lastError);
         // TODO: Buffer for retry (Phase 2)
+    }
+
+    return success;
+}
+
+// ===== SPIFFS CACHING METHODS =====
+
+bool HTTPScheduleClient::cacheScheduleToSPIFFS(const String& date, const String& json) {
+    if (!SPIFFS.begin()) {
+        Serial.println("HTTP Client: SPIFFS not available for caching");
+        return false;
+    }
+
+    String filepath = "/schedules/" + date + ".json";
+
+    File file = SPIFFS.open(filepath, "w");
+    if (!file) {
+        Serial.println("HTTP Client: Failed to create cache file: " + filepath);
+        return false;
+    }
+
+    size_t bytesWritten = file.print(json);
+    file.close();
+
+    if (bytesWritten > 0) {
+        Serial.println("HTTP Client: Cached schedule to " + filepath + " (" + String(bytesWritten) + " bytes)");
+        return true;
+    } else {
+        Serial.println("HTTP Client: Failed to write cache file");
+        return false;
+    }
+}
+
+bool HTTPScheduleClient::loadScheduleFromCache(const String& date) {
+    if (!SPIFFS.begin()) {
+        Serial.println("HTTP Client: SPIFFS not available");
+        return false;
+    }
+
+    String filepath = "/schedules/" + date + ".json";
+
+    if (!SPIFFS.exists(filepath)) {
+        Serial.println("HTTP Client: No cached schedule found for " + date);
+        return false;
+    }
+
+    File file = SPIFFS.open(filepath, "r");
+    if (!file) {
+        Serial.println("HTTP Client: Failed to open cache file: " + filepath);
+        return false;
+    }
+
+    String json = file.readString();
+    file.close();
+
+    Serial.println("HTTP Client: Loading cached schedule from " + filepath + " (" + String(json.length()) + " bytes)");
+
+    // Parse and load the cached schedule
+    bool success = parse5DayScheduleResponse(json);
+
+    if (success) {
+        Serial.println("HTTP Client: ✅ Successfully loaded schedule from cache");
+    } else {
+        Serial.println("HTTP Client: ❌ Failed to parse cached schedule");
+    }
+
+    return success;
+}
+
+bool HTTPScheduleClient::loadLatestCachedSchedule() {
+    if (!SPIFFS.begin()) {
+        Serial.println("HTTP Client: SPIFFS not available");
+        return false;
+    }
+
+    // Get today's date
+    time_t now = time(nullptr);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+    char dateStr[11];
+    strftime(dateStr, sizeof(dateStr), "%Y-%m-%d", &timeinfo);
+
+    // Try to load today's cache first
+    if (loadScheduleFromCache(String(dateStr))) {
+        return true;
+    }
+
+    // If today's cache doesn't exist, try yesterday's
+    now -= 86400;  // Subtract 1 day
+    localtime_r(&now, &timeinfo);
+    strftime(dateStr, sizeof(dateStr), "%Y-%m-%d", &timeinfo);
+
+    if (loadScheduleFromCache(String(dateStr))) {
+        Serial.println("HTTP Client: Using yesterday's cached schedule as fallback");
+        return true;
+    }
+
+    Serial.println("HTTP Client: No recent cached schedules found");
+    return false;
+}
+
+bool HTTPScheduleClient::clearOldCache(int daysToKeep) {
+    if (!SPIFFS.begin()) {
+        return false;
+    }
+
+    time_t now = time(nullptr);
+    time_t cutoffTime = now - (daysToKeep * 86400);  // Convert days to seconds
+
+    File root = SPIFFS.open("/schedules");
+    if (!root || !root.isDirectory()) {
+        Serial.println("HTTP Client: /schedules directory not found");
+        return false;
+    }
+
+    int filesDeleted = 0;
+    File file = root.openNextFile();
+
+    while (file) {
+        String filename = String(file.name());
+
+        // Only process .json files in the schedules directory
+        if (filename.endsWith(".json") && !filename.equals(".init")) {
+            time_t fileTime = file.getLastWrite();
+
+            if (fileTime < cutoffTime) {
+                String filepath = "/schedules/" + filename;
+                file.close();
+
+                if (SPIFFS.remove(filepath)) {
+                    Serial.println("HTTP Client: Deleted old cache: " + filepath);
+                    filesDeleted++;
+                }
+            }
+        }
+
+        file = root.openNextFile();
+    }
+
+    root.close();
+
+    if (filesDeleted > 0) {
+        Serial.println("HTTP Client: Cleaned up " + String(filesDeleted) + " old cache files");
+    }
+
+    return true;
+}
+
+// Unified fetch method that supports 1-5 days and includes caching
+bool HTTPScheduleClient::fetchSchedule(int days, int8_t zoneId) {
+    if (days < 1 || days > 5) {
+        lastError = "Invalid days parameter (must be 1-5)";
+        return false;
+    }
+
+    if (!configManager || !scheduleManager) {
+        lastError = "Client not initialized";
+        return false;
+    }
+
+    if (WiFi.status() != WL_CONNECTED) {
+        lastError = "WiFi not connected";
+        Serial.println("HTTP Client: " + lastError + " - attempting to load from cache");
+        consecutiveFailures++;
+
+        // Try to load from cache as fallback
+        return loadLatestCachedSchedule();
+    }
+
+    Serial.println("HTTP Client: Fetching " + String(days) + "-day schedule" +
+                   (zoneId > 0 ? " (zone " + String(zoneId) + ")" : " (all zones)"));
+
+    String url = buildScheduleUrl(days, zoneId);
+    Serial.println("  URL: " + url);
+
+    String response;
+    if (!executeRequest(url, response)) {
+        Serial.println("HTTP Client: Fetch failed - " + lastError);
+        Serial.println("  Attempting to load from cache...");
+        consecutiveFailures++;
+
+        // Try to load from cache as fallback
+        return loadLatestCachedSchedule();
+    }
+
+    Serial.println("HTTP Client: Received schedule (" + String(response.length()) + " bytes)");
+
+    // Parse the schedule
+    bool success = parse5DayScheduleResponse(response);
+
+    if (success) {
+        lastFetchTime = millis();
+        consecutiveFailures = 0;
+
+        // Cache the schedule to SPIFFS for offline use
+        time_t now = time(nullptr);
+        struct tm timeinfo;
+        localtime_r(&now, &timeinfo);
+        char dateStr[11];
+        strftime(dateStr, sizeof(dateStr), "%Y-%m-%d", &timeinfo);
+
+        cacheScheduleToSPIFFS(String(dateStr), response);
+
+        Serial.println("HTTP Client: ✅ " + String(days) + "-day schedule loaded and cached successfully");
+    } else {
+        consecutiveFailures++;
+        Serial.println("HTTP Client: ❌ Failed to parse schedule");
+
+        // Try cache as last resort
+        Serial.println("  Attempting to load from cache...");
+        return loadLatestCachedSchedule();
     }
 
     return success;

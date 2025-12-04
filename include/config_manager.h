@@ -33,6 +33,13 @@ struct SystemConfig {
     bool mqttRetainMessages; // Retain MQTT messages
     int mqttKeepAlive;      // MQTT keep-alive interval in seconds
 
+    // HTTP Server settings (for schedule fetching)
+    char serverUrl[128];    // Server URL (e.g., "http://172.17.254.10:2880")
+    char deviceId[32];      // Device identifier (e.g., "esp32_irrigation_01")
+    int serverRetryInterval; // Retry interval in seconds (default 3600 = 1 hour)
+    int serverMaxRetries;   // Maximum retry attempts per day (default 24)
+    bool serverEnabled;     // Enable server communication
+
     // Irrigation settings
     bool enableScheduling;
     int maxZoneRunTime;     // Maximum run time in minutes
@@ -124,6 +131,18 @@ public:
     void setMQTTRetainMessages(bool retain);
     int getMQTTKeepAlive() const { return config.mqttKeepAlive; }
     void setMQTTKeepAlive(int keepAlive);
+
+    // HTTP Server configuration
+    bool isServerEnabled() const { return config.serverEnabled; }
+    void setServerEnabled(bool enabled);
+    String getServerUrl() const { return String(config.serverUrl); }
+    void setServerUrl(const String& url);
+    String getDeviceId() const { return String(config.deviceId); }
+    void setDeviceId(const String& id);
+    int getServerRetryInterval() const { return config.serverRetryInterval; }
+    void setServerRetryInterval(int seconds);
+    int getServerMaxRetries() const { return config.serverMaxRetries; }
+    void setServerMaxRetries(int retries);
 
     // Utility methods
     void printConfig();

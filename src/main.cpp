@@ -47,13 +47,6 @@ const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 #endif
 
-// Server URL - Can be set via build_flags in platformio.ini
-#ifndef SERVER_URL
-const char* serverUrl = "http://172.17.254.10:2880";
-#else
-const char* serverUrl = SERVER_URL;
-#endif
-
 // Create web server, RTC, configuration, schedule manager, MQTT manager, and HTTP client instances
 HunterWebServer hunterServer(80);
 RTCModule rtcModule;
@@ -78,12 +71,15 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable) {
   }
 }
 
-// Daily schedule fetch task - runs at 6:15 AM
+// Daily schedule fetch task - runs at 5:15 PM (17:15)
+// This is 15 minutes after the server generates schedules at 5:00 PM (17:00)
 void checkAndFetchDailySchedule() {
   static int lastFetchDay = -1;
   static bool fetchAttemptedToday = false;
+  static int retryCount = 0;
+  static unsigned long lastRetryTime = 0;
 
-  if (!rtcModule.isInitialized()) {
+  if (!rtcModule.isInitialized() || !configManager.isServerEnabled()) {
     return;
   }
 
@@ -92,14 +88,15 @@ void checkAndFetchDailySchedule() {
   int currentHour = now.hour();
   int currentMinute = now.minute();
 
-  // Reset fetch flag on new day
+  // Reset fetch flag and retry count on new day
   if (currentDay != lastFetchDay) {
     fetchAttemptedToday = false;
+    retryCount = 0;
     lastFetchDay = currentDay;
   }
 
-  // Fetch schedule at 6:15 AM if not already attempted today
-  if (!fetchAttemptedToday && currentHour == 6 && currentMinute >= 15 && currentMinute < 20) {
+  // Fetch schedule at 5:15 PM (17:15) if not already attempted today
+  if (!fetchAttemptedToday && currentHour == 17 && currentMinute >= 15 && currentMinute < 20) {
     fetchAttemptedToday = true;
 
     if (WiFi.status() != WL_CONNECTED) {
@@ -108,16 +105,52 @@ void checkAndFetchDailySchedule() {
     }
 
     Serial.println("");
-    Serial.println("=== DAILY SCHEDULE FETCH ===");
+    Serial.println("=== DAILY SCHEDULE FETCH (5:15 PM) ===");
     Serial.println("Time: " + rtcModule.getDateTimeString());
+    Serial.println("Device ID: " + configManager.getDeviceId());
+    Serial.println("Server: " + configManager.getServerUrl());
 
-    if (httpClient.fetchTodaySchedule()) {
-      Serial.println("✅ Daily schedule fetched successfully from server");
-      Serial.println("============================");
+    if (httpClient.fetchSchedule(5)) { // Fetch 5-day schedule
+      Serial.println("✅ 5-day schedule fetched successfully from server");
+      Serial.println("=======================================");
+      retryCount = 0; // Reset retry count on success
     } else {
-      Serial.println("⚠️ Failed to fetch daily schedule: " + httpClient.getLastError());
-      Serial.println("   Using local/cached schedules");
-      Serial.println("============================");
+      Serial.println("⚠️ Failed to fetch schedule: " + httpClient.getLastError());
+      Serial.println("   Will retry in " + String(configManager.getServerRetryInterval()/60) + " minutes");
+      Serial.println("=======================================");
+      lastRetryTime = millis();
+    }
+  }
+
+  // Retry logic - attempt to fetch schedule every retry interval if initial fetch failed
+  if (fetchAttemptedToday && retryCount < configManager.getServerMaxRetries()) {
+    unsigned long retryInterval = configManager.getServerRetryInterval() * 1000UL;
+    if (millis() - lastRetryTime > retryInterval) {
+      retryCount++;
+      Serial.println("");
+      Serial.println("=== SCHEDULE FETCH RETRY #" + String(retryCount) + " ===");
+      Serial.println("Time: " + rtcModule.getDateTimeString());
+
+      if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("⚠️ WiFi not connected, skipping retry");
+        lastRetryTime = millis();
+        return;
+      }
+
+      if (httpClient.fetchSchedule(5)) {
+        Serial.println("✅ Schedule fetched successfully on retry #" + String(retryCount));
+        Serial.println("============================");
+        retryCount = configManager.getServerMaxRetries(); // Stop retrying
+      } else {
+        Serial.println("⚠️ Retry failed: " + httpClient.getLastError());
+        if (retryCount < configManager.getServerMaxRetries()) {
+          Serial.println("   Will retry again in " + String(configManager.getServerRetryInterval()/60) + " minutes");
+        } else {
+          Serial.println("   Max retries reached, will try again tomorrow");
+        }
+        Serial.println("============================");
+        lastRetryTime = millis();
+      }
     }
   }
 }
@@ -261,26 +294,34 @@ void setup(void){
   Serial.println("");
   Serial.println("Initializing HTTP Schedule Client...");
   if (httpClient.begin(&configManager, &scheduleManager)) {
-    httpClient.setServerUrl(serverUrl);
+    // Use server URL from configuration
+    httpClient.setServerUrl(configManager.getServerUrl().c_str());
+    httpClient.setDeviceId(configManager.getDeviceId().c_str());
     Serial.println("HTTP Schedule Client initialized successfully");
+    Serial.println("  Server URL: " + configManager.getServerUrl());
+    Serial.println("  Device ID: " + configManager.getDeviceId());
+    Serial.println("  Retry interval: " + String(configManager.getServerRetryInterval()/60) + " minutes");
+    Serial.println("  Max retries: " + String(configManager.getServerMaxRetries()));
 
     // Test connection to server
-    if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED && configManager.isServerEnabled()) {
       if (httpClient.testConnection()) {
         Serial.println("✅ Server connection test successful");
 
-        // Fetch today's schedule on startup
-        Serial.println("Fetching today's schedule from server...");
-        if (httpClient.fetchTodaySchedule()) {
-          Serial.println("✅ Today's schedule loaded from server");
+        // Fetch 5-day schedule on startup
+        Serial.println("Fetching 5-day schedule from server...");
+        if (httpClient.fetchSchedule(5)) {
+          Serial.println("✅ 5-day schedule loaded from server");
         } else {
-          Serial.println("⚠️ Failed to fetch today's schedule: " + httpClient.getLastError());
-          Serial.println("   Will use local schedules or retry later");
+          Serial.println("⚠️ Failed to fetch schedule: " + httpClient.getLastError());
+          Serial.println("   Will retry at 5:15 PM daily or use local schedules");
         }
       } else {
         Serial.println("⚠️ Server connection test failed: " + httpClient.getLastError());
-        Serial.println("   Will use local schedules and retry later");
+        Serial.println("   Will retry at 5:15 PM daily");
       }
+    } else if (!configManager.isServerEnabled()) {
+      Serial.println("ℹ️ Server communication disabled in configuration");
     }
   } else {
     Serial.println("WARNING: HTTP Schedule Client failed to initialize");
@@ -385,7 +426,7 @@ void loop(void)
   // Process MQTT communication
   mqttManager.loop();
 
-  // Check for daily schedule fetch (runs at 6:15 AM)
+  // Check for daily schedule fetch (runs at 5:15 PM with retry logic)
   checkAndFetchDailySchedule();
 
   // Check and execute scheduled zones

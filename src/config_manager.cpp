@@ -47,6 +47,13 @@ void ConfigManager::setDefaults() {
     config.mqttRetainMessages = true;
     config.mqttKeepAlive = 60; // 60 seconds
 
+    // HTTP Server defaults
+    strcpy(config.serverUrl, "http://172.17.254.10:2880");
+    strcpy(config.deviceId, "esp32_irrigation_01");
+    config.serverRetryInterval = 3600; // 1 hour
+    config.serverMaxRetries = 24; // 24 retries per day
+    config.serverEnabled = true;
+
     // Irrigation defaults
     config.enableScheduling = true;
     config.maxZoneRunTime = 240; // 4 hours max
@@ -344,6 +351,11 @@ String ConfigManager::getConfigJSON() {
     json += "\"mqtt_topic_prefix\":\"" + String(config.mqttTopicPrefix) + "\",";
     json += "\"mqtt_retain\":" + String(config.mqttRetainMessages ? "true" : "false") + ",";
     json += "\"mqtt_keep_alive\":" + String(config.mqttKeepAlive) + ",";
+    json += "\"server_enabled\":" + String(config.serverEnabled ? "true" : "false") + ",";
+    json += "\"server_url\":\"" + String(config.serverUrl) + "\",";
+    json += "\"device_id\":\"" + String(config.deviceId) + "\",";
+    json += "\"server_retry_interval\":" + String(config.serverRetryInterval) + ",";
+    json += "\"server_max_retries\":" + String(config.serverMaxRetries) + ",";
     json += "\"scheduling\":" + String(config.enableScheduling ? "true" : "false") + ",";
     json += "\"max_runtime\":" + String(config.maxZoneRunTime) + ",";
     json += "\"max_enabled_zones\":" + String(config.maxEnabledZones) + ",";
@@ -392,6 +404,45 @@ void ConfigManager::setMQTTTopicPrefix(const String& prefix) {
 void ConfigManager::setMQTTRetainMessages(bool retain) {
     config.mqttRetainMessages = retain;
     saveConfig();
+}
+
+void ConfigManager::setMQTTKeepAlive(int keepAlive) {
+    if (keepAlive > 0 && keepAlive <= 3600) {
+        config.mqttKeepAlive = keepAlive;
+        saveConfig();
+    }
+}
+
+// HTTP Server Configuration Methods
+void ConfigManager::setServerEnabled(bool enabled) {
+    config.serverEnabled = enabled;
+    saveConfig();
+}
+
+void ConfigManager::setServerUrl(const String& url) {
+    strncpy(config.serverUrl, url.c_str(), sizeof(config.serverUrl) - 1);
+    config.serverUrl[sizeof(config.serverUrl) - 1] = '\0';
+    saveConfig();
+}
+
+void ConfigManager::setDeviceId(const String& id) {
+    strncpy(config.deviceId, id.c_str(), sizeof(config.deviceId) - 1);
+    config.deviceId[sizeof(config.deviceId) - 1] = '\0';
+    saveConfig();
+}
+
+void ConfigManager::setServerRetryInterval(int seconds) {
+    if (seconds >= 60 && seconds <= 86400) { // Min 1 minute, max 24 hours
+        config.serverRetryInterval = seconds;
+        saveConfig();
+    }
+}
+
+void ConfigManager::setServerMaxRetries(int retries) {
+    if (retries >= 0 && retries <= 100) {
+        config.serverMaxRetries = retries;
+        saveConfig();
+    }
 }
 
 void ConfigManager::setMQTTKeepAlive(int keepAlive) {
