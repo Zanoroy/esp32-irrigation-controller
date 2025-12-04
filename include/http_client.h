@@ -40,49 +40,61 @@ private:
     ConfigManager* configManager;
     ScheduleManager* scheduleManager;
     HTTPClient http;
-    
+
     String serverUrl;         // Base URL: http://172.17.254.10:2880
     String deviceId;          // Unique device identifier
-    
+
     // HTTP configuration
-    static const int HTTP_TIMEOUT = 5000;       // 5 second timeout
+    static const int HTTP_TIMEOUT = 10000;      // 10 second timeout (cross-subnet)
     static const int MAX_RETRIES = 3;           // Retry failed requests
     static const int RETRY_DELAY = 2000;        // 2 seconds between retries
-    
+
     // Helper methods
-    String buildScheduleUrl(const String& date, int8_t zoneId = -1);
+    String buildScheduleUrl(int days = 1, int8_t zoneId = -1);  // Support multi-day fetch
     String buildCompletionUrl();
-    bool parseScheduleResponse(const String& json);
+    String buildEventStartUrl();
+    bool parseScheduleResponse(const String& json, int expectedDays = 1);
+    bool parse5DayScheduleResponse(const String& json);
     String createCompletionPayload(const EventCompletion& completion);
+    String createEventStartPayload(uint32_t scheduleId, uint8_t zoneId, const String& startTime);
     bool executeRequest(const String& url, String& response);
     bool executePostRequest(const String& url, const String& payload, String& response);
-    
+
 public:
     HTTPScheduleClient();
-    
+
     // Initialization
     bool begin(ConfigManager* config, ScheduleManager* schedule);
     void setServerUrl(const String& url);
     void setDeviceId(const String& id);
-    
+
     // Schedule fetching
+    bool fetch5DaySchedule(int8_t zoneId = -1);  // Fetch 5-day rolling lookahead
     bool fetchDailySchedule(const String& date, int8_t zoneId = -1);
     bool fetchTodaySchedule();
-    
+
     // Event completion reporting
     bool reportCompletion(const EventCompletion& completion);
-    bool reportCompletion(uint32_t scheduleId, uint8_t zoneId, 
-                         float durationMin, float waterUsed, 
+    bool reportCompletion(uint32_t scheduleId, uint8_t zoneId,
+                         float durationMin, float waterUsed,
                          const String& status = "completed");
-    
+
+    // Event start notification (immediate update when watering begins)
+    bool reportEventStart(uint32_t scheduleId, uint8_t zoneId, const String& startTime);
+
     // Status and diagnostics
     bool testConnection();
     String getLastError() const { return lastError; }
     unsigned long getLastFetchTime() const { return lastFetchTime; }
-    
+
+    // Retry tracking
+    int getConsecutiveFailures() const { return consecutiveFailures; }
+    void resetFailureCount() { consecutiveFailures = 0; }
+
 private:
     String lastError;
     unsigned long lastFetchTime;
+    int consecutiveFailures;  // Track consecutive fetch failures for retry logic
 };
 
 #endif // HTTP_CLIENT_H

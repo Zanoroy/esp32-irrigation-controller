@@ -82,35 +82,35 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable) {
 void checkAndFetchDailySchedule() {
   static int lastFetchDay = -1;
   static bool fetchAttemptedToday = false;
-  
+
   if (!rtcModule.isInitialized()) {
     return;
   }
-  
+
   DateTime now = rtcModule.getCurrentTime();
   int currentDay = now.day();
   int currentHour = now.hour();
   int currentMinute = now.minute();
-  
+
   // Reset fetch flag on new day
   if (currentDay != lastFetchDay) {
     fetchAttemptedToday = false;
     lastFetchDay = currentDay;
   }
-  
+
   // Fetch schedule at 6:15 AM if not already attempted today
   if (!fetchAttemptedToday && currentHour == 6 && currentMinute >= 15 && currentMinute < 20) {
     fetchAttemptedToday = true;
-    
+
     if (WiFi.status() != WL_CONNECTED) {
       Serial.println("⚠️ Daily schedule fetch: WiFi not connected, skipping");
       return;
     }
-    
+
     Serial.println("");
     Serial.println("=== DAILY SCHEDULE FETCH ===");
     Serial.println("Time: " + rtcModule.getDateTimeString());
-    
+
     if (httpClient.fetchTodaySchedule()) {
       Serial.println("✅ Daily schedule fetched successfully from server");
       Serial.println("============================");
@@ -263,12 +263,12 @@ void setup(void){
   if (httpClient.begin(&configManager, &scheduleManager)) {
     httpClient.setServerUrl(serverUrl);
     Serial.println("HTTP Schedule Client initialized successfully");
-    
+
     // Test connection to server
     if (WiFi.status() == WL_CONNECTED) {
       if (httpClient.testConnection()) {
         Serial.println("✅ Server connection test successful");
-        
+
         // Fetch today's schedule on startup
         Serial.println("Fetching today's schedule from server...");
         if (httpClient.fetchTodaySchedule()) {

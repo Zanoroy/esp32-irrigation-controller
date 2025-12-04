@@ -1,7 +1,7 @@
 # ESP32-Server Integration Implementation Plan
 
-**Created**: December 4, 2025  
-**Status**: Phase 1 - In Progress  
+**Created**: December 4, 2025
+**Status**: Phase 1 - In Progress
 **Integration Approach**: Option 2 - Hybrid HTTP + MQTT
 
 ---
@@ -32,48 +32,94 @@
 
 ---
 
-### 🔄 Phase 1: Foundation - Basic HTTP Schedule Fetching (IN PROGRESS)
-**Goal**: Establish HTTP communication for daily schedule retrieval
+### 🔄 Phase 1: Foundation - 5-Day Rolling Lookahead (IN PROGRESS)
+**Goal**: Establish HTTP communication for 5-day schedule retrieval with resilient caching
 
-**Timeline**: Week 1  
+**Timeline**: Week 1
 **Started**: December 4, 2025
 
 #### Server Side Tasks
-- [ ] Create REST endpoint: `GET /api/schedules/daily`
-  - Query params: `date` (YYYY-MM-DD), `zone_id` (optional)
-  - Returns: JSON schedule for ESP32 consumption
-- [ ] Test endpoint with curl/Postman
-- [ ] Document API format in API.md
+- [x] Update database schema (migration) - ✅ APPLIED
+  - Migration script: `database/migrations/001_add_esp32_tracking.sql`
+  - Migration runner: `database/migrations/run_migration.sh`
+  - Adds device_id, fetched_by_device, executed_by_device to schedules
+  - Adds device_id, actual_duration_min, actual_water_used_l to logs
+  - **Status**: Applied on 2025-12-04, backup created
+- [x] Create REST endpoint: `GET /api/schedules/daily?days=5` - COMPLETED
+  - Implemented in: `flows/esp32-integration-flows.json`
+  - Returns full 5-day schedule grouped by date and zone
+  - Includes zone metadata (water_rate_lpm, zone_name)
+  - Updates fetched_by_device tracking when device_id provided
+- [x] Create event endpoints - COMPLETED
+  - `POST /api/events/start` - Reports watering start, updates status to 'running'
+  - `POST /api/events/completion` - Logs actual water usage, updates to 'completed'
+- [x] Test endpoints - COMPLETED
+  - GET endpoint returns proper 5-day schedule structure
+  - POST endpoints successfully update database
+  - Verified with curl commands
+- [x] Create 5-day schedule generator flow - COMPLETED
+  - New flow: `flows/5-day-schedule-generator.json`
+  - Trigger: Daily at 5:00 PM (cron: `00 17 * * *`)
+  - Clears old schedules for next 5 days
+  - Generates simple schedules (15 min at 10 PM per zone)
+  - Ready for import and deployment
+- [ ] Import and deploy 5-day generator flow
+  - Import instructions: `flows/5-DAY-GENERATOR-IMPORT-INSTRUCTIONS.md`
+  - Replace manual test data with automated generation
+  - **TODO**: Enhance with WateringCalculator integration for production
 
 #### ESP32 Side Tasks
-- [ ] Create `http_client.h` and `http_client.cpp` modules
+- [x] Create `http_client.h` and `http_client.cpp` modules
   - HTTPClient wrapper for schedule fetching
   - JSON parsing with ArduinoJson
   - Error handling and retry logic
+  - Completion reporting method
 - [ ] Add server configuration to ConfigManager
   - Server URL: http://172.17.254.10:2880
-  - Connection timeout settings
-  - Retry parameters
+  - Device ID: esp32_irrigation_01
+  - Connection timeout: 10 seconds
+  - Retry interval: 1 hour
+  - Max retries: 24 (covers full day)
 - [ ] Enhance ScheduleManager
-  - Add `loadServerSchedule()` method
-  - Parse JSON schedule format
-  - Store in existing schedule structures
-- [ ] Create daily fetch task
-  - RTC-triggered at 6:15 AM
-  - Fetch schedule for current day
-  - Load into ScheduleManager
+  - Add `loadServerSchedule()` method for 5-day data
+  - Parse JSON schedule array format
+  - Store in SPIFFS cache (5 separate files, one per day)
+  - Add `getScheduleForDate()` method
+- [ ] Implement SPIFFS schedule caching
+  - Format: `/schedule_YYYY-MM-DD.json` (5 files)
+  - Clear old cache before saving new
+  - Persist across reboots
+  - Estimated size: 15KB total (3KB × 5 days)
+- [ ] Create daily fetch task (RTC-triggered)
+  - **Primary time**: 5:15 PM (17:15) daily
+  - **Retry logic**: Every hour if fetch fails
+  - **Fallback**: Use yesterday's lookahead (still has 4 days valid)
+  - Load into ScheduleManager after successful fetch
+- [ ] Add offline event buffering
+  - Queue start/completion events when offline
+  - Store in SPIFFS: `/pending_events.json`
+  - Auto-submit when connection restored
+  - Max buffer: 50 events (~2KB)
 
 #### Testing Checklist
-- [ ] Mock schedule JSON parsing (serial monitor)
+- [ ] Database migration (backup → apply → verify)
+- [ ] Mock 5-day schedule JSON parsing
 - [ ] HTTP fetch test with real server
-- [ ] Schedule execution test
-- [ ] Memory usage verification (heap monitoring)
-- [ ] Error handling (server down, network loss)
+- [ ] SPIFFS cache save/load test
+- [ ] Schedule execution from cache (offline mode)
+- [ ] Retry logic test (disconnect server)
+- [ ] Event buffering test (start watering while offline)
+- [ ] Memory usage verification (<40KB additional)
+- [ ] Power loss recovery (reboot while schedule cached)
 
 #### Expected Deliverables
-- Working HTTP client module
-- Daily schedule auto-fetch at 6:15 AM
-- Schedule execution from server data
+- Migrated database with ESP32 tracking
+- Working HTTP client module with retry logic
+- 5-day schedule auto-fetch at 5:15 PM
+- SPIFFS caching for offline resilience
+- Offline event buffering
+- Schedule execution from cached data
+- Completion reporting with retry
 - Serial logging of all operations
 
 ---
@@ -392,7 +438,7 @@ Total overhead:     ~55KB (well within limits)
 ### Risk: Network Cross-Subnet Issues
 - **Likelihood**: Medium
 - **Impact**: High
-- **Mitigation**: 
+- **Mitigation**:
   - Add connection timeout (5 seconds)
   - Implement exponential backoff
   - Fall back to cached schedules
@@ -498,6 +544,6 @@ When resuming work:
 
 ---
 
-**Last Updated**: December 4, 2025  
-**Current Phase**: Phase 1 - Foundation  
+**Last Updated**: December 4, 2025
+**Current Phase**: Phase 1 - Foundation
 **Next Milestone**: HTTP schedule fetching working
