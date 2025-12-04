@@ -32,6 +32,7 @@
 #include "config_manager.h"
 #include "schedule_manager.h"
 #include "mqtt_manager.h"
+#include "http_client.h"
 
 // Define constants
 const bool   PUMP_PIN_DEFAULT = false; // Set to true to set PUMP_PIN as On by default
@@ -46,12 +47,20 @@ const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
 #endif
 
-// Create web server, RTC, configuration, schedule manager, and MQTT manager instances
+// Server URL - Can be set via build_flags in platformio.ini
+#ifndef SERVER_URL
+const char* serverUrl = "http://172.17.254.10:2880";
+#else
+const char* serverUrl = SERVER_URL;
+#endif
+
+// Create web server, RTC, configuration, schedule manager, MQTT manager, and HTTP client instances
 HunterWebServer hunterServer(80);
 RTCModule rtcModule;
 ConfigManager configManager;
 ScheduleManager scheduleManager;
 MQTTManager mqttManager;
+HTTPScheduleClient httpClient;
 HunterRoam hunterController(HUNTER_PIN);
 // Zone control callback function for ScheduleManager
 void zoneControlCallback(uint8_t zoneNumber, bool enable) {
@@ -68,6 +77,51 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable) {
     Serial.println("Zone " + String(zoneNumber) + " stopped via schedule");
   }
 }
+
+// Daily schedule fetch task - runs at 6:15 AM
+void checkAndFetchDailySchedule() {
+  static int lastFetchDay = -1;
+  static bool fetchAttemptedToday = false;
+  
+  if (!rtcModule.isInitialized()) {
+    return;
+  }
+  
+  DateTime now = rtcModule.getCurrentTime();
+  int currentDay = now.day();
+  int currentHour = now.hour();
+  int currentMinute = now.minute();
+  
+  // Reset fetch flag on new day
+  if (currentDay != lastFetchDay) {
+    fetchAttemptedToday = false;
+    lastFetchDay = currentDay;
+  }
+  
+  // Fetch schedule at 6:15 AM if not already attempted today
+  if (!fetchAttemptedToday && currentHour == 6 && currentMinute >= 15 && currentMinute < 20) {
+    fetchAttemptedToday = true;
+    
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("⚠️ Daily schedule fetch: WiFi not connected, skipping");
+      return;
+    }
+    
+    Serial.println("");
+    Serial.println("=== DAILY SCHEDULE FETCH ===");
+    Serial.println("Time: " + rtcModule.getDateTimeString());
+    
+    if (httpClient.fetchTodaySchedule()) {
+      Serial.println("✅ Daily schedule fetched successfully from server");
+      Serial.println("============================");
+    } else {
+      Serial.println("⚠️ Failed to fetch daily schedule: " + httpClient.getLastError());
+      Serial.println("   Using local/cached schedules");
+      Serial.println("============================");
+    }
+  }
+}
+
 
 void setup(void){
   // Serial port for debugging purposes
@@ -203,6 +257,35 @@ void setup(void){
     Serial.println("WARNING: MQTT Manager failed to initialize");
   }
 
+  // Initialize HTTP Schedule Client
+  Serial.println("");
+  Serial.println("Initializing HTTP Schedule Client...");
+  if (httpClient.begin(&configManager, &scheduleManager)) {
+    httpClient.setServerUrl(serverUrl);
+    Serial.println("HTTP Schedule Client initialized successfully");
+    
+    // Test connection to server
+    if (WiFi.status() == WL_CONNECTED) {
+      if (httpClient.testConnection()) {
+        Serial.println("✅ Server connection test successful");
+        
+        // Fetch today's schedule on startup
+        Serial.println("Fetching today's schedule from server...");
+        if (httpClient.fetchTodaySchedule()) {
+          Serial.println("✅ Today's schedule loaded from server");
+        } else {
+          Serial.println("⚠️ Failed to fetch today's schedule: " + httpClient.getLastError());
+          Serial.println("   Will use local schedules or retry later");
+        }
+      } else {
+        Serial.println("⚠️ Server connection test failed: " + httpClient.getLastError());
+        Serial.println("   Will use local schedules and retry later");
+      }
+    }
+  } else {
+    Serial.println("WARNING: HTTP Schedule Client failed to initialize");
+  }
+
   // Print current time at startup
   if (rtcModule.isInitialized()) {
     Serial.println("");
@@ -301,6 +384,9 @@ void loop(void)
 
   // Process MQTT communication
   mqttManager.loop();
+
+  // Check for daily schedule fetch (runs at 6:15 AM)
+  checkAndFetchDailySchedule();
 
   // Check and execute scheduled zones
   scheduleManager.checkAndExecuteSchedules();
