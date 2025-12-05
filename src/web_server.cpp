@@ -523,13 +523,61 @@ void HunterWebServer::handleSetConfig() {
         return;
     }
 
-    // Parse URL parameters for configuration updates
+    // Check if request has JSON body (check both header and presence of body)
+    bool hasJsonBody = false;
+    if (serverInstance->server.hasArg("plain")) {
+        // Has body - check if Content-Type indicates JSON, or assume JSON if body looks like JSON
+        String contentType = serverInstance->server.hasHeader("Content-Type") ?
+                           serverInstance->server.header("Content-Type") : "";
+        hasJsonBody = (contentType.indexOf("application/json") >= 0) ||
+                      (serverInstance->server.arg("plain").startsWith("{"));
+    }
+
+    Serial.println("API: Config update request");
+    Serial.println("  Has JSON body: " + String(hasJsonBody ? "yes" : "no"));
+    Serial.println("  Has 'plain' arg: " + String(serverInstance->server.hasArg("plain") ? "yes" : "no"));
+
+    // Parse JSON once if present
+    JsonDocument doc;
+    DeserializationError jsonError;
+    if (hasJsonBody && serverInstance->server.hasArg("plain")) {
+        String body = serverInstance->server.arg("plain");
+        Serial.println("  Body length: " + String(body.length()));
+        Serial.println("  Body: " + body);
+        jsonError = deserializeJson(doc, body);
+        if (jsonError) {
+            Serial.println("  JSON parse error: " + String(jsonError.c_str()));
+        } else {
+            Serial.println("  JSON parsed successfully");
+        }
+    }
+
+    // Parse URL parameters or JSON body for configuration updates
     String response = "Configuration updated:\n";
     bool configChanged = false;
 
+    // Helper lambda to get parameter from URL or JSON
+    auto getParam = [&](const char* key) -> String {
+        if (hasJsonBody && !jsonError) {
+            // Use parsed JSON document
+            if (doc[key].is<const char*>()) {
+                return String(doc[key].as<const char*>());
+            } else if (doc[key].is<bool>()) {
+                return doc[key].as<bool>() ? "true" : "false";
+            } else if (doc[key].is<int>()) {
+                return String(doc[key].as<int>());
+            }
+            return "";
+        } else {
+            // Parse URL parameters
+            return serverInstance->server.hasArg(key) ? serverInstance->server.arg(key) : "";
+        }
+    };
+
     // Timezone settings
-    if (serverInstance->server.hasArg("timezone")) {
-        float timezoneFloat = serverInstance->server.arg("timezone").toFloat();
+    String timezoneStr = getParam("timezone");
+    if (timezoneStr.length() > 0) {
+        float timezoneFloat = timezoneStr.toFloat();
         int timezoneHalfHours = (int)(timezoneFloat * 2);  // Convert to half-hour increments
         if (timezoneHalfHours >= -24 && timezoneHalfHours <= 28) {
             configManager->setTimezoneOffset(timezoneHalfHours);
@@ -541,32 +589,35 @@ void HunterWebServer::handleSetConfig() {
         }
     }
 
-    if (serverInstance->server.hasArg("daylight_saving")) {
-        bool dst = (serverInstance->server.arg("daylight_saving") == "true");
+    String daylightStr = getParam("daylight_saving");
+    if (daylightStr.length() > 0) {
+        bool dst = (daylightStr == "true");
         configManager->setDaylightSaving(dst);
         response += "- Daylight Saving: " + String(dst ? "Enabled" : "Disabled") + "\n";
         configChanged = true;
     }
 
     // NTP settings
-    if (serverInstance->server.hasArg("ntp_server1")) {
-        String server1 = serverInstance->server.arg("ntp_server1");
-        String server2 = serverInstance->server.hasArg("ntp_server2") ?
-                         serverInstance->server.arg("ntp_server2") : "time.nist.gov";
-        configManager->setNTPServers(server1, server2);
-        response += "- NTP Servers: " + server1 + ", " + server2 + "\n";
+    String ntpServer1Str = getParam("ntp_server1");
+    if (ntpServer1Str.length() > 0) {
+        String server2 = getParam("ntp_server2");
+        if (server2.length() == 0) server2 = "time.nist.gov";
+        configManager->setNTPServers(ntpServer1Str, server2);
+        response += "- NTP Servers: " + ntpServer1Str + ", " + server2 + "\n";
         configChanged = true;
     }
 
-    if (serverInstance->server.hasArg("auto_ntp")) {
-        bool autoNTP = (serverInstance->server.arg("auto_ntp") == "true");
+    String autoNtpStr = getParam("auto_ntp");
+    if (autoNtpStr.length() > 0) {
+        bool autoNTP = (autoNtpStr == "true");
         configManager->setAutoNTPSync(autoNTP);
         response += "- Auto NTP Sync: " + String(autoNTP ? "Enabled" : "Disabled") + "\n";
         configChanged = true;
     }
 
-    if (serverInstance->server.hasArg("sync_interval")) {
-        int interval = serverInstance->server.arg("sync_interval").toInt();
+    String syncIntervalStr = getParam("sync_interval");
+    if (syncIntervalStr.length() > 0) {
+        int interval = syncIntervalStr.toInt();
         if (interval > 0 && interval <= 168) {
             configManager->setSyncInterval(interval);
             response += "- Sync Interval: " + String(interval) + " hours\n";
@@ -574,9 +625,126 @@ void HunterWebServer::handleSetConfig() {
         }
     }
 
+    // MQTT settings
+    String mqttEnabledStr = getParam("mqtt_enabled");
+    if (mqttEnabledStr.length() > 0) {
+        bool enabled = (mqttEnabledStr == "true");
+        configManager->setMQTTEnabled(enabled);
+        response += "- MQTT Enabled: " + String(enabled ? "Yes" : "No") + "\n";
+        configChanged = true;
+    }
+
+    String mqttBrokerStr = getParam("mqtt_broker");
+    if (mqttBrokerStr.length() > 0) {
+        configManager->setMQTTBroker(mqttBrokerStr);
+        response += "- MQTT Broker: " + mqttBrokerStr + "\n";
+        configChanged = true;
+    }
+
+    String mqttPortStr = getParam("mqtt_port");
+    if (mqttPortStr.length() > 0) {
+        int port = mqttPortStr.toInt();
+        if (port > 0 && port <= 65535) {
+            configManager->setMQTTPort(port);
+            response += "- MQTT Port: " + String(port) + "\n";
+            configChanged = true;
+        }
+    }
+
+    String mqttUsernameStr = getParam("mqtt_username");
+    if (mqttUsernameStr.length() > 0) {
+        configManager->setMQTTUsername(mqttUsernameStr);
+        response += "- MQTT Username: " + mqttUsernameStr + "\n";
+        configChanged = true;
+    }
+
+    String mqttPasswordStr = getParam("mqtt_password");
+    if (mqttPasswordStr.length() > 0) {
+        configManager->setMQTTPassword(mqttPasswordStr);
+        response += "- MQTT Password: ***\n";
+        configChanged = true;
+    }
+
+    String mqttTopicPrefixStr = getParam("mqtt_topic_prefix");
+    if (mqttTopicPrefixStr.length() > 0) {
+        configManager->setMQTTTopicPrefix(mqttTopicPrefixStr);
+        response += "- MQTT Topic Prefix: " + mqttTopicPrefixStr + "\n";
+        configChanged = true;
+    }
+
+    String mqttRetainStr = getParam("mqtt_retain");
+    if (mqttRetainStr.length() > 0) {
+        bool retain = (mqttRetainStr == "true");
+        configManager->setMQTTRetainMessages(retain);
+        response += "- MQTT Retain Messages: " + String(retain ? "Yes" : "No") + "\n";
+        configChanged = true;
+    }
+
+    String mqttKeepAliveStr = getParam("mqtt_keep_alive");
+    if (mqttKeepAliveStr.length() > 0) {
+        int keepAlive = mqttKeepAliveStr.toInt();
+        if (keepAlive > 0 && keepAlive <= 300) {
+            configManager->setMQTTKeepAlive(keepAlive);
+            response += "- MQTT Keep Alive: " + String(keepAlive) + " seconds\n";
+            configChanged = true;
+        }
+    }
+
+    // Server settings
+    String serverEnabledStr = getParam("server_enabled");
+    if (serverEnabledStr.length() > 0) {
+        bool enabled = (serverEnabledStr == "true");
+        configManager->setServerEnabled(enabled);
+        response += "- Server Enabled: " + String(enabled ? "Yes" : "No") + "\n";
+        configChanged = true;
+    }
+
+    String serverUrlStr = getParam("server_url");
+    if (serverUrlStr.length() > 0) {
+        configManager->setServerUrl(serverUrlStr);
+        response += "- Server URL: " + serverUrlStr + "\n";
+        configChanged = true;
+    }
+
+    String deviceIdStr = getParam("device_id");
+    if (deviceIdStr.length() > 0) {
+        configManager->setDeviceId(deviceIdStr);
+        response += "- Device ID: " + deviceIdStr + "\n";
+        configChanged = true;
+    }
+
+    String serverRetryIntervalStr = getParam("server_retry_interval");
+    if (serverRetryIntervalStr.length() > 0) {
+        int interval = serverRetryIntervalStr.toInt();
+        if (interval > 0 && interval <= 86400) {
+            configManager->setServerRetryInterval(interval);
+            response += "- Server Retry Interval: " + String(interval) + " seconds\n";
+            configChanged = true;
+        }
+    }
+
+    String serverMaxRetriesStr = getParam("server_max_retries");
+    if (serverMaxRetriesStr.length() > 0) {
+        int retries = serverMaxRetriesStr.toInt();
+        if (retries > 0 && retries <= 100) {
+            configManager->setServerMaxRetries(retries);
+            response += "- Server Max Retries: " + String(retries) + "\n";
+            configChanged = true;
+        }
+    }
+
     // Irrigation settings
-    if (serverInstance->server.hasArg("max_runtime")) {
-        int maxRuntime = serverInstance->server.arg("max_runtime").toInt();
+    String schedulingStr = getParam("scheduling");
+    if (schedulingStr.length() > 0) {
+        bool enabled = (schedulingStr == "true");
+        configManager->setSchedulingEnabled(enabled);
+        response += "- Scheduling: " + String(enabled ? "Enabled" : "Disabled") + "\n";
+        configChanged = true;
+    }
+
+    String maxRuntimeStr = getParam("max_runtime");
+    if (maxRuntimeStr.length() > 0) {
+        int maxRuntime = maxRuntimeStr.toInt();
         if (maxRuntime > 0 && maxRuntime <= 1440) {
             configManager->setMaxZoneRunTime(maxRuntime);
             response += "- Max Zone Runtime: " + String(maxRuntime) + " minutes\n";
@@ -584,8 +752,9 @@ void HunterWebServer::handleSetConfig() {
         }
     }
 
-    if (serverInstance->server.hasArg("max_enabled_zones")) {
-        int maxZones = serverInstance->server.arg("max_enabled_zones").toInt();
+    String maxZonesStr = getParam("max_enabled_zones");
+    if (maxZonesStr.length() > 0) {
+        int maxZones = maxZonesStr.toInt();
         if (maxZones >= 1 && maxZones <= 16) {
             configManager->setMaxEnabledZones(maxZones);
             response += "- Max Enabled Zones: " + String(maxZones) + "\n";
@@ -593,8 +762,9 @@ void HunterWebServer::handleSetConfig() {
         }
     }
 
-    if (serverInstance->server.hasArg("pump_safety")) {
-        bool pumpSafety = (serverInstance->server.arg("pump_safety") == "true");
+    String pumpSafetyStr = getParam("pump_safety");
+    if (pumpSafetyStr.length() > 0) {
+        bool pumpSafety = (pumpSafetyStr == "true");
         configManager->setPumpSafetyMode(pumpSafety);
         response += "- Pump Safety Mode: " + String(pumpSafety ? "Enabled" : "Disabled") + "\n";
         configChanged = true;

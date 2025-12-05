@@ -63,9 +63,7 @@ private:
     uint32_t calculateChecksum() const;
     bool validateConfig() const;
 
-    // Storage methods (try EEPROM first, fallback to NVS)
-    bool saveToEEPROM();
-    bool loadFromEEPROM();
+    // Storage methods (uses ESP32 NVS)
     bool saveToNVS();
     bool loadFromNVS();
 

@@ -3,18 +3,47 @@
 #include <time.h>
 
 // Constructor
-RTCModule::RTCModule() : rtcInitialized(false), eepromAvailable(false) {
+RTCModule::RTCModule() : rtcInitialized(false) {
 }
 
 // Initialize the RTC
 bool RTCModule::begin() {
     Serial.println("Initializing RTC module...");
 
-    // Initialize I2C with specific pins for TinyRTC
+    // Initialize I2C with specific pins for TinyRTC if not already started
+    // The Wire library will handle this gracefully if already initialized
     Wire.begin(SDA_PIN, SCL_PIN);
 
-    // Initialize RTC
-    if (!rtc.begin()) {
+    // Small delay to ensure I2C is ready
+    delay(100);
+
+    // Scan I2C bus to see what devices are present
+    Serial.println("Scanning I2C bus...");
+    byte devicesFound = 0;
+    for (byte address = 1; address < 127; address++) {
+        Wire.beginTransmission(address);
+        byte error = Wire.endTransmission();
+
+        if (error == 0) {
+            Serial.print("  I2C device found at 0x");
+            if (address < 16) Serial.print("0");
+            Serial.println(address, HEX);
+            devicesFound++;
+        }
+    }
+
+    if (devicesFound == 0) {
+        Serial.println("  No I2C devices found!");
+        Serial.println("  Check wiring:");
+        Serial.println("    SDA → GPIO21");
+        Serial.println("    SCL → GPIO22");
+        Serial.println("    Power and Ground connections");
+    } else {
+        Serial.println("  Scan complete. Found " + String(devicesFound) + " device(s)");
+    }
+
+    // Initialize RTC, explicitly passing the Wire object
+    if (!rtc.begin(&Wire)) {
         Serial.println("ERROR: Couldn't find RTC! Check wiring:");
         Serial.println("  TinyRTC VCC → ESP32 5V (or 3.3V)");
         Serial.println("  TinyRTC GND → ESP32 GND");
@@ -27,9 +56,9 @@ bool RTCModule::begin() {
     Serial.println("RTC found and initialized");
 
     // Check if RTC lost power and needs time setting
-    if (!rtc.isrunning()) {
-        Serial.println("WARNING: RTC is NOT running!");
-        Serial.println("RTC may need new battery or time setting");
+    if (rtc.lostPower()) {
+        Serial.println("WARNING: RTC lost power!");
+        Serial.println("RTC needs time setting");
 
         // Try to sync with NTP if WiFi is connected
         if (WiFi.status() == WL_CONNECTED) {
@@ -48,15 +77,7 @@ bool RTCModule::begin() {
         Serial.println("RTC is running and keeping time");
     }
 
-    // Test for EEPROM availability
-    Serial.println("Testing for AT24C32 EEPROM...");
-    if (testEEPROM()) {
-        Serial.println("AT24C32 EEPROM detected and functional");
-        eepromAvailable = true;
-    } else {
-        Serial.println("AT24C32 EEPROM not detected or not functional");
-        eepromAvailable = false;
-    }
+    // Note: EEPROM removed - using SPIFFS/NVS for storage instead
 
     rtcInitialized = true;
     printStatus();
@@ -120,7 +141,7 @@ String RTCModule::getDateTimeString() {
 // Check if RTC is running
 bool RTCModule::isRunning() {
     if (!rtcInitialized) return false;
-    return rtc.isrunning();
+    return !rtc.lostPower();  // lostPower() returns true if RTC lost power, so invert
 }
 
 // Sync RTC with NTP time
@@ -177,8 +198,7 @@ void RTCModule::printStatus() {
     }
 
     Serial.println("=== RTC Status ===");
-    Serial.println("RTC Type: DS1307 (TinyRTC)");
-    Serial.println("EEPROM: AT24C32 " + String(eepromAvailable ? "Available" : "Not Available"));
+    Serial.println("RTC Type: DS3231");
     Serial.println("I2C Pins: SDA=GPIO21, SCL=GPIO22");
     Serial.println("Running: " + String(isRunning() ? "Yes" : "No"));
     Serial.println("Current Time: " + getDateTimeString());
@@ -190,117 +210,4 @@ void RTCModule::printStatus() {
     String days[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
     Serial.println("Day of Week: " + days[now.dayOfTheWeek()]);
     Serial.println("==================");
-}
-
-// Write single byte to EEPROM
-bool RTCModule::writeEEPROM(uint16_t address, uint8_t data) {
-    if (!eepromAvailable) return false;
-
-    Wire.beginTransmission(EEPROM_I2C_ADDRESS);
-    Wire.write((address >> 8) & 0xFF); // High byte of address
-    Wire.write(address & 0xFF);        // Low byte of address
-    Wire.write(data);
-
-    uint8_t result = Wire.endTransmission();
-    if (result == 0) {
-        delay(5); // Write cycle time for AT24C32
-        return true;
-    }
-    return false;
-}
-
-// Write multiple bytes to EEPROM
-bool RTCModule::writeEEPROM(uint16_t address, const uint8_t* data, size_t length) {
-    if (!eepromAvailable) return false;
-
-    for (size_t i = 0; i < length; i++) {
-        if (!writeEEPROM(address + i, data[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-// Read single byte from EEPROM
-uint8_t RTCModule::readEEPROM(uint16_t address) {
-    if (!eepromAvailable) return 0xFF;
-
-    Wire.beginTransmission(EEPROM_I2C_ADDRESS);
-    Wire.write((address >> 8) & 0xFF); // High byte of address
-    Wire.write(address & 0xFF);        // Low byte of address
-
-    if (Wire.endTransmission() == 0) {
-        Wire.requestFrom(EEPROM_I2C_ADDRESS, 1);
-        if (Wire.available()) {
-            return Wire.read();
-        }
-    }
-    return 0xFF; // Error value
-}
-
-// Read multiple bytes from EEPROM
-bool RTCModule::readEEPROM(uint16_t address, uint8_t* buffer, size_t length) {
-    if (!eepromAvailable) return false;
-
-    for (size_t i = 0; i < length; i++) {
-        buffer[i] = readEEPROM(address + i);
-        if (buffer[i] == 0xFF && address + i != 0xFFFF) {
-            // Might be an error (unless we're actually reading 0xFF)
-        }
-    }
-    return true;
-}
-
-// Test EEPROM functionality
-bool RTCModule::testEEPROM() {
-    // Test address for EEPROM detection
-    uint16_t testAddress = 0x0000;
-    uint8_t testValue = 0xAA;
-    uint8_t originalValue;
-
-    // Try to communicate with EEPROM
-    Wire.beginTransmission(EEPROM_I2C_ADDRESS);
-    uint8_t result = Wire.endTransmission();
-
-    if (result != 0) {
-        Serial.println("EEPROM not responding on I2C address 0x57");
-        return false;
-    }
-
-    // Read original value
-    originalValue = readEEPROM(testAddress);
-
-    // Write test value
-    Wire.beginTransmission(EEPROM_I2C_ADDRESS);
-    Wire.write((testAddress >> 8) & 0xFF);
-    Wire.write(testAddress & 0xFF);
-    Wire.write(testValue);
-    result = Wire.endTransmission();
-
-    if (result != 0) {
-        Serial.println("EEPROM write failed");
-        return false;
-    }
-
-    delay(5); // Write cycle time
-
-    // Read back test value
-    uint8_t readValue = readEEPROM(testAddress);
-
-    // Restore original value
-    Wire.beginTransmission(EEPROM_I2C_ADDRESS);
-    Wire.write((testAddress >> 8) & 0xFF);
-    Wire.write(testAddress & 0xFF);
-    Wire.write(originalValue);
-    Wire.endTransmission();
-    delay(5);
-
-    // Check if test was successful
-    if (readValue == testValue) {
-        Serial.println("EEPROM test successful (4KB AT24C32)");
-        return true;
-    } else {
-        Serial.println("EEPROM test failed - read/write mismatch");
-        return false;
-    }
 }

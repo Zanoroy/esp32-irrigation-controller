@@ -93,27 +93,14 @@ bool ConfigManager::validateConfig() const {
 bool ConfigManager::loadConfig() {
     bool loaded = false;
 
-    // Try loading from EEPROM first (if available)
-    if (rtcModule && rtcModule->isEEPROMAvailable()) {
-        Serial.println("Attempting to load config from EEPROM...");
-        if (loadFromEEPROM()) {
-            Serial.println("Configuration loaded from EEPROM");
-            loaded = true;
-        } else {
-            Serial.println("Failed to load from EEPROM, trying NVS...");
-        }
-    }
-
-    // Fallback to ESP32 NVS
-    if (!loaded) {
-        Serial.println("Loading configuration from NVS...");
-        if (loadFromNVS()) {
-            Serial.println("Configuration loaded from NVS");
-            loaded = true;
-        } else {
-            Serial.println("No valid configuration found, using defaults");
-            setDefaults();
-        }
+    // Load from ESP32 NVS (built-in non-volatile storage)
+    Serial.println("Loading configuration from NVS...");
+    if (loadFromNVS()) {
+        Serial.println("Configuration loaded from NVS");
+        loaded = true;
+    } else {
+        Serial.println("No valid configuration found, using defaults");
+        setDefaults();
     }
 
     // Validate loaded configuration
@@ -131,62 +118,15 @@ bool ConfigManager::saveConfig() {
     // Update checksum before saving
     config.checksum = calculateChecksum();
 
-    bool saved = false;
-
-    // Try saving to EEPROM first (if available)
-    if (rtcModule && rtcModule->isEEPROMAvailable()) {
-        Serial.println("Saving configuration to EEPROM...");
-        if (saveToEEPROM()) {
-            Serial.println("Configuration saved to EEPROM");
-            saved = true;
-        } else {
-            Serial.println("EEPROM save failed, trying NVS...");
-        }
-    }
-
-    // Always save to NVS as backup
+    // Save to ESP32 NVS (built-in non-volatile storage)
     Serial.println("Saving configuration to NVS...");
     if (saveToNVS()) {
         Serial.println("Configuration saved to NVS");
-        saved = true;
+        return true;
     } else {
         Serial.println("NVS save failed");
-    }
-
-    return saved;
-}
-
-bool ConfigManager::saveToEEPROM() {
-    if (!rtcModule || !rtcModule->isEEPROMAvailable()) return false;
-
-    // Write magic number first
-    uint32_t magic = CONFIG_MAGIC_NUMBER;
-    if (!rtcModule->writeEEPROM(CONFIG_START_ADDRESS, (uint8_t*)&magic, sizeof(magic))) {
         return false;
     }
-
-    // Write configuration data
-    return rtcModule->writeEEPROM(CONFIG_START_ADDRESS + sizeof(magic),
-                                  (uint8_t*)&config, sizeof(config));
-}
-
-bool ConfigManager::loadFromEEPROM() {
-    if (!rtcModule || !rtcModule->isEEPROMAvailable()) return false;
-
-    // Check magic number
-    uint32_t magic;
-    if (!rtcModule->readEEPROM(CONFIG_START_ADDRESS, (uint8_t*)&magic, sizeof(magic))) {
-        return false;
-    }
-
-    if (magic != CONFIG_MAGIC_NUMBER) {
-        Serial.println("EEPROM magic number mismatch");
-        return false;
-    }
-
-    // Read configuration data
-    return rtcModule->readEEPROM(CONFIG_START_ADDRESS + sizeof(magic),
-                                 (uint8_t*)&config, sizeof(config));
 }
 
 bool ConfigManager::saveToNVS() {
@@ -441,13 +381,6 @@ void ConfigManager::setServerRetryInterval(int seconds) {
 void ConfigManager::setServerMaxRetries(int retries) {
     if (retries >= 0 && retries <= 100) {
         config.serverMaxRetries = retries;
-        saveConfig();
-    }
-}
-
-void ConfigManager::setMQTTKeepAlive(int keepAlive) {
-    if (keepAlive > 0 && keepAlive <= 3600) {
-        config.mqttKeepAlive = keepAlive;
         saveConfig();
     }
 }

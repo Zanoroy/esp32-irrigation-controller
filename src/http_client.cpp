@@ -162,9 +162,9 @@ bool HTTPScheduleClient::executePostRequest(const String& url, const String& pay
     return false;
 }
 
-bool HTTPScheduleClient::parseScheduleResponse(const String& json) {
+bool HTTPScheduleClient::parseScheduleResponse(const String& json, int expectedDays) {
     // Parse JSON response
-    DynamicJsonDocument doc(8192);  // 8KB buffer for schedule JSON
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, json);
 
     if (error) {
@@ -179,6 +179,15 @@ bool HTTPScheduleClient::parseScheduleResponse(const String& json) {
         lastError = doc["error"] | "Unknown error";
         Serial.println("HTTP Client: Server returned error: " + lastError);
         return false;
+    }
+
+    // Validate expected days if provided
+    if (expectedDays > 0) {
+        int daysInResponse = doc["days"] | 1;
+        if (daysInResponse != expectedDays) {
+            Serial.println("HTTP Client: ⚠️  WARNING - Expected " + String(expectedDays) +
+                         " days but received " + String(daysInResponse) + " days");
+        }
     }
 
     // Get zones array
@@ -273,7 +282,7 @@ bool HTTPScheduleClient::fetchDailySchedule(const String& date, int8_t zoneId) {
     Serial.println("HTTP Client: Fetching schedule for " + date +
                    (zoneId > 0 ? " (zone " + String(zoneId) + ")" : " (all zones)"));
 
-    String url = buildScheduleUrl(date, zoneId);
+    String url = buildScheduleUrl(1, zoneId);
     Serial.println("  URL: " + url);
 
     String response;
@@ -308,7 +317,7 @@ bool HTTPScheduleClient::fetchTodaySchedule() {
 }
 
 String HTTPScheduleClient::createCompletionPayload(const EventCompletion& completion) {
-    DynamicJsonDocument doc(1024);
+    JsonDocument doc;
 
     doc["schedule_id"] = completion.scheduleId;
     doc["zone_id"] = completion.zoneId;
@@ -464,7 +473,7 @@ bool HTTPScheduleClient::fetch5DaySchedule(int8_t zoneId) {
 
 bool HTTPScheduleClient::parse5DayScheduleResponse(const String& json) {
     // Parse JSON response for 5-day schedule
-    DynamicJsonDocument doc(16384);  // 16KB buffer for 5-day schedule
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, json);
 
     if (error) {
@@ -543,7 +552,7 @@ bool HTTPScheduleClient::parse5DayScheduleResponse(const String& json) {
 }
 
 String HTTPScheduleClient::createEventStartPayload(uint32_t scheduleId, uint8_t zoneId, const String& startTime) {
-    DynamicJsonDocument doc(512);
+    JsonDocument doc;
 
     doc["schedule_id"] = scheduleId;
     doc["zone_id"] = zoneId;

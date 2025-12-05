@@ -288,7 +288,7 @@ void MQTTManager::handleScheduleMessage(const String& topic, const String& paylo
 }
 
 String MQTTManager::buildTopic(const String& suffix) {
-    return topicPrefix + client_id + "/" + suffix;
+    return topicPrefix + deviceId + "/" + suffix;
 }
 
 String MQTTManager::buildConfigTopic(const String& setting) {
