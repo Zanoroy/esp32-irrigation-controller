@@ -56,18 +56,23 @@ MQTTManager mqttManager;
 HTTPScheduleClient httpClient;
 HunterRoam hunterController(HUNTER_PIN);
 // Zone control callback function for ScheduleManager
-void zoneControlCallback(uint8_t zoneNumber, bool enable) {
-  Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF"));
+void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration) {
+  Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF") + " for " + String(duration) + " minutes");
 
   if (enable) {
     // Start the zone using Hunter protocol (zone, time in minutes)
-    // Use a default of 10 minutes for scheduled zones - this will be overridden by schedule duration
-    hunterController.startZone(zoneNumber, 10);
-    Serial.println("Zone " + String(zoneNumber) + " started via schedule");
+    hunterController.startZone(zoneNumber, duration);
+    Serial.println("Zone " + String(zoneNumber) + " started via schedule for " + String(duration) + " minutes");
+
+    // Publish MQTT zone status
+    mqttManager.publishZoneStatus(zoneNumber, "running", duration * 60);
   } else {
     // Stop the zone
     hunterController.stopZone(zoneNumber);
     Serial.println("Zone " + String(zoneNumber) + " stopped via schedule");
+
+    // Publish MQTT zone status
+    mqttManager.publishZoneStatus(zoneNumber, "stopped", 0);
   }
 }
 
@@ -95,8 +100,8 @@ void checkAndFetchDailySchedule() {
     lastFetchDay = currentDay;
   }
 
-  // Fetch schedule at 5:15 PM (17:15) if not already attempted today
-  if (!fetchAttemptedToday && currentHour == 17 && currentMinute >= 15 && currentMinute < 20) {
+  // Fetch schedule at 11:00 PM (23:00) if not already attempted today
+  if (!fetchAttemptedToday && currentHour == 23 && currentMinute >= 00 && currentMinute < 20) {
     fetchAttemptedToday = true;
 
     if (WiFi.status() != WL_CONNECTED) {
@@ -105,7 +110,7 @@ void checkAndFetchDailySchedule() {
     }
 
     Serial.println("");
-    Serial.println("=== DAILY SCHEDULE FETCH (5:15 PM) ===");
+    Serial.println("=== DAILY SCHEDULE FETCH (23:00) ===");
     Serial.println("Time: " + rtcModule.getDateTimeString());
     Serial.println("Device ID: " + configManager.getDeviceId());
     Serial.println("Server: " + configManager.getServerUrl());

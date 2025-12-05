@@ -199,7 +199,7 @@ ConflictResult ScheduleManager::startZoneManual(uint8_t zone, uint16_t duration)
 
         // Call zone control callback
         if (zoneControlCallback) {
-            zoneControlCallback(zone, true);
+            zoneControlCallback(zone, true, duration);
         }
 
         Serial.printf("ScheduleManager: Started zone %d for %d minutes\n", zone, duration);
@@ -216,7 +216,7 @@ bool ScheduleManager::stopZone(uint8_t zone) {
 
     // Call zone control callback
     if (zoneControlCallback) {
-        zoneControlCallback(zone, false);
+        zoneControlCallback(zone, false, 0);
     }
 
     // Clear the active zone slot
@@ -436,7 +436,7 @@ uint32_t ScheduleManager::getCurrentUnixTime() {
     return millis() / 1000; // Simplified - should use actual RTC time
 }
 
-void ScheduleManager::setZoneControlCallback(void (*callback)(uint8_t zone, bool state)) {
+void ScheduleManager::setZoneControlCallback(void (*callback)(uint8_t zone, bool state, uint16_t duration)) {
     zoneControlCallback = callback;
 }
 
@@ -477,7 +477,7 @@ void ScheduleManager::cancelZoneForRain(uint8_t zone) {
     if (activeIndex >= 0) {
         activeZones[activeIndex].state = RAINCANCELLED;
         if (zoneControlCallback) {
-            zoneControlCallback(zone, false);
+            zoneControlCallback(zone, false, 0);
         }
         Serial.println("ScheduleManager: Zone " + String(zone) + " cancelled due to rain");
     }

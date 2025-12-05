@@ -48,6 +48,12 @@ void MQTTManager::updateConfig() {
         return;
     }
 
+    // Get actual device ID from config
+    deviceId = configManager->getDeviceId();
+    if (deviceId.isEmpty()) {
+        deviceId = "esp32_irrigation";
+    }
+
     topicPrefix = configManager->getMQTTTopicPrefix();
     if (!topicPrefix.endsWith("/")) {
         topicPrefix += "/";
@@ -59,6 +65,7 @@ void MQTTManager::updateConfig() {
     Serial.println("MQTT: Configuration updated");
     Serial.println("  Broker: " + broker);
     Serial.println("  Port: " + String(port));
+    Serial.println("  Device ID: " + deviceId);
     Serial.println("  Topic Prefix: " + topicPrefix);
 
     mqttClient.setServer(broker.c_str(), port);
@@ -164,16 +171,28 @@ bool MQTTManager::reconnect() {
 
 void MQTTManager::subscribeToTopics() {
     // Subscribe to configuration topics
-    mqttClient.subscribe((topicPrefix + deviceId + "/config/+/set").c_str());
+    String configTopic = topicPrefix + deviceId + "/config/+/set";
+    mqttClient.subscribe(configTopic.c_str());
+    Serial.println("MQTT: Subscribed to " + configTopic);
 
     // Subscribe to command topics
-    mqttClient.subscribe((topicPrefix + deviceId + "/command/+").c_str());
+    String commandTopic = topicPrefix + deviceId + "/command/+";
+    mqttClient.subscribe(commandTopic.c_str());
+    Serial.println("MQTT: Subscribed to " + commandTopic);
 
     // Subscribe to schedule topics
-    mqttClient.subscribe((topicPrefix + deviceId + "/schedule/set").c_str());
-    mqttClient.subscribe((topicPrefix + deviceId + "/schedule/ai/set").c_str());
+    String scheduleTopic = topicPrefix + deviceId + "/schedule/set";
+    mqttClient.subscribe(scheduleTopic.c_str());
+    Serial.println("MQTT: Subscribed to " + scheduleTopic);
 
-    Serial.println("MQTT: Subscribed to command topics");
+    String aiScheduleTopic = topicPrefix + deviceId + "/schedule/ai/set";
+    mqttClient.subscribe(aiScheduleTopic.c_str());
+    Serial.println("MQTT: Subscribed to " + aiScheduleTopic);
+
+    // Subscribe to zone control topics
+    String zoneTopic = topicPrefix + deviceId + "/zone/+/set";
+    mqttClient.subscribe(zoneTopic.c_str());
+    Serial.println("MQTT: Subscribed to " + zoneTopic);
 }
 
 void MQTTManager::staticOnMessage(char* topic, byte* payload, unsigned int length) {
@@ -199,6 +218,8 @@ void MQTTManager::onMessage(char* topic, byte* payload, unsigned int length) {
         handleCommandMessage(topicStr, payloadStr);
     } else if (topicStr.indexOf("/schedule/") >= 0) {
         handleScheduleMessage(topicStr, payloadStr);
+    } else if (topicStr.indexOf("/zone/") >= 0) {
+        handleZoneMessage(topicStr, payloadStr);
     }
 }
 
@@ -269,6 +290,43 @@ void MQTTManager::handleCommandMessage(const String& topic, const String& payloa
     Serial.println("MQTT: Executed command: " + command + " with payload: " + payload);
 }
 
+void MQTTManager::handleZoneMessage(const String& topic, const String& payload) {
+    // Extract zone number from topic (format: .../zone/X/set)
+    int zoneIndex = topic.indexOf("/zone/");
+    int setIndex = topic.indexOf("/set");
+    if (zoneIndex < 0 || setIndex < 0) return;
+
+    String zoneStr = topic.substring(zoneIndex + 6, setIndex);
+    uint8_t zone = zoneStr.toInt();
+
+    if (zone < 1 || zone > configManager->getMaxEnabledZones()) {
+        Serial.println("MQTT: Invalid zone number: " + String(zone));
+        return;
+    }
+
+    // Parse JSON payload
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (error) {
+        Serial.println("MQTT: Failed to parse zone command JSON");
+        return;
+    }
+
+    String action = doc["action"] | "";
+    int duration = doc["duration"] | 0;
+
+    if (action == "ON" && duration > 0) {
+        Serial.println("MQTT: Starting zone " + String(zone) + " for " + String(duration) + " minutes");
+        scheduleManager->startZoneManual(zone, duration);
+    } else if (action == "OFF") {
+        Serial.println("MQTT: Stopping zone " + String(zone));
+        scheduleManager->stopZone(zone);
+    } else {
+        Serial.println("MQTT: Invalid zone command - action: " + action + ", duration: " + String(duration));
+    }
+}
+
 void MQTTManager::handleScheduleMessage(const String& topic, const String& payload) {
     if (topic.indexOf("/schedule/ai/set") >= 0) {
         // Handle AI schedule update
@@ -296,7 +354,7 @@ String MQTTManager::buildConfigTopic(const String& setting) {
 }
 
 String MQTTManager::buildStatusTopic(const String& type) {
-    return buildTopic("status/" + type);
+    return buildTopic(type);
 }
 
 void MQTTManager::publishStatus() {

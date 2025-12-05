@@ -139,10 +139,10 @@ public:
     void processActiveZones();
 
     // Callback function pointer for zone control
-    void setZoneControlCallback(void (*callback)(uint8_t zone, bool state));
+    void setZoneControlCallback(void (*callback)(uint8_t zone, bool state, uint16_t duration));
 
 private:
-    void (*zoneControlCallback)(uint8_t zone, bool state) = nullptr;
+    void (*zoneControlCallback)(uint8_t zone, bool state, uint16_t duration) = nullptr;
 };
 
 #endif // SCHEDULE_MANAGER_H

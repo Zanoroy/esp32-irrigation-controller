@@ -40,6 +40,7 @@ private:
     void handleConfigMessage(const String& topic, const String& payload);
     void handleCommandMessage(const String& topic, const String& payload);
     void handleScheduleMessage(const String& topic, const String& payload);
+    void handleZoneMessage(const String& topic, const String& payload);
 
     // Topic builders
     String buildTopic(const String& suffix);

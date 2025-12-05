@@ -183,82 +183,112 @@ bool HTTPScheduleClient::parseScheduleResponse(const String& json, int expectedD
 
     // Validate expected days if provided
     if (expectedDays > 0) {
-        int daysInResponse = doc["days"] | 1;
+        int daysInResponse = doc["days_returned"] | 1;
         if (daysInResponse != expectedDays) {
             Serial.println("HTTP Client: ⚠️  WARNING - Expected " + String(expectedDays) +
                          " days but received " + String(daysInResponse) + " days");
         }
     }
 
-    // Get zones array
-    JsonArray zones = doc["zones"];
-    if (zones.isNull()) {
-        lastError = "No zones array in response";
+    // Get data object with date keys
+    JsonObject data = doc["data"];
+    if (data.isNull()) {
+        lastError = "No data object in response";
         Serial.println("HTTP Client: " + lastError);
+        Serial.println("HTTP Client: JSON keys found:");
+        for (JsonPair kv : doc.as<JsonObject>()) {
+            Serial.println("  - " + String(kv.key().c_str()));
+        }
         return false;
     }
 
     int totalEvents = 0;
 
     // Clear existing server schedules (but keep basic schedules)
-    // Note: This requires adding clearAISchedules() method to ScheduleManager
     scheduleManager->clearAISchedules();
 
-    // Parse each zone's events
-    for (JsonObject zone : zones) {
-        uint8_t zoneId = zone["zone_id"] | 0;
-        String zoneName = zone["zone_name"] | "Unknown";
-        JsonArray events = zone["events"];
+    Serial.println("HTTP Client: Found " + String(data.size()) + " dates in response");
 
-        if (events.isNull() || zoneId == 0) {
+    // Iterate through each date in the data object
+    for (JsonPair datePair : data) {
+        String dateStr = datePair.key().c_str();
+        JsonVariant dateValue = datePair.value();
+
+        Serial.println("Processing date: " + dateStr);
+        Serial.println("  Value type: " + String(dateValue.is<JsonArray>() ? "Array" :
+                                                dateValue.is<JsonObject>() ? "Object" : "Other"));
+
+        JsonArray zonesForDate = dateValue.as<JsonArray>();
+
+        if (zonesForDate.isNull()) {
+            Serial.println("  ERROR: Could not convert to JsonArray (no zones)");
             continue;
         }
 
-        Serial.println("Processing zone " + String(zoneId) + " (" + zoneName + ")");
+        Serial.println("  Zones count: " + String(zonesForDate.size()));
 
-        for (JsonObject event : events) {
-            // Parse event data
-            uint32_t serverId = event["id"] | 0;
-            String startTime = event["start_time"] | "00:00";
-            uint16_t durationMin = event["duration_min"] | 0;
-            uint8_t repeatCount = event["repeat_count"] | 1;
-            uint16_t restTimeMin = event["rest_time_min"] | 0;
-            uint8_t priority = event["priority"] | 5;
+        // Parse each zone for this date
+        for (JsonObject zone : zonesForDate) {
+            uint8_t zoneId = zone["zone_id"] | 0;
+            String zoneName = zone["zone_name"] | "Unknown";
+            JsonArray events = zone["events"];
 
-            // Parse start time (format: "HH:MM")
-            int colonPos = startTime.indexOf(':');
-            if (colonPos <= 0) {
-                Serial.println("  Invalid time format: " + startTime);
+            Serial.println("  Zone " + String(zoneId) + " (" + zoneName + "): " +
+                         String(events.isNull() ? 0 : events.size()) + " events");
+
+            if (events.isNull() || zoneId == 0) {
+                if (events.isNull()) Serial.println("    ERROR: events array is null");
+                if (zoneId == 0) Serial.println("    ERROR: zoneId is 0");
                 continue;
             }
 
-            uint8_t hour = startTime.substring(0, colonPos).toInt();
-            uint8_t minute = startTime.substring(colonPos + 1).toInt();
+            for (JsonObject event : events) {
+                // Parse event data
+                uint32_t serverId = event["id"] | 0;
+                String startTime = event["start_time"] | "00:00";
+                uint16_t durationMin = event["duration_min"] | 0;
+                uint8_t repeatCount = event["repeat_count"] | 1;
+                uint16_t restTimeMin = event["rest_time_min"] | 0;
+                uint8_t priority = event["priority"] | 5;
 
-            if (hour > 23 || minute > 59) {
-                Serial.println("  Invalid time values: " + String(hour) + ":" + String(minute));
-                continue;
-            }
+                Serial.println("  Event: zone=" + String(zoneId) +
+                             " time=" + startTime +
+                             " duration=" + String(durationMin));
 
-            // Calculate expiry time (end of day in Unix time)
-            // For now, set to expire at midnight (24 hours from schedule generation)
-            uint32_t expiryTime = 0;  // 0 means expires end of day (handled by ScheduleManager)
+                // Parse start time (format: "HH:MM")
+                int colonPos = startTime.indexOf(':');
+                if (colonPos <= 0) {
+                    Serial.println("  Invalid time format: " + startTime);
+                    continue;
+                }
 
-            // Create day mask for today only (will be expanded in Phase 2)
-            uint8_t dayMask = 0x7F;  // All days for now (will be refined later)
+                uint8_t hour = startTime.substring(0, colonPos).toInt();
+                uint8_t minute = startTime.substring(colonPos + 1).toInt();
 
-            // Add to ScheduleManager as AI schedule
-            uint8_t scheduleId = scheduleManager->addAISchedule(
-                zoneId, dayMask, hour, minute, durationMin, expiryTime
-            );
+                if (hour > 23 || minute > 59) {
+                    Serial.println("  Invalid time values: " + String(hour) + ":" + String(minute));
+                    continue;
+                }
 
-            if (scheduleId > 0) {
-                totalEvents++;
-                Serial.println("  Added event: Zone " + String(zoneId) +
-                             " at " + String(hour) + ":" + String(minute) +
-                             " for " + String(durationMin) + " min (ID: " + String(scheduleId) + ")");
-            } else {
-                Serial.println("  Failed to add event for zone " + String(zoneId));
+                // Calculate expiry time (end of day in Unix time)
+                uint32_t expiryTime = 0;  // 0 means expires end of day (handled by ScheduleManager)
+
+                // Create day mask for today only (will be expanded in Phase 2)
+                uint8_t dayMask = 0x7F;  // All days for now (will be refined later)
+
+                // Add to ScheduleManager as AI schedule
+                uint8_t scheduleId = scheduleManager->addAISchedule(
+                    zoneId, dayMask, hour, minute, durationMin, expiryTime
+                );
+
+                if (scheduleId > 0) {
+                    totalEvents++;
+                    Serial.println("  Added: Zone " + String(zoneId) +
+                                 " at " + String(hour) + ":" + String(minute) +
+                                 " for " + String(durationMin) + " min (" + dateStr + ")");
+                } else {
+                    Serial.println("  Failed to add event for zone " + String(zoneId));
+                }
             }
         }
     }
@@ -507,44 +537,55 @@ bool HTTPScheduleClient::parse5DayScheduleResponse(const String& json) {
     // Iterate through each day in the response
     for (JsonPair dayPair : data) {
         String date = dayPair.key().c_str();
-        JsonArray daySchedules = dayPair.value();
+        JsonArray zonesForDay = dayPair.value();
 
-        Serial.println("Processing date: " + date + " (" + String(daySchedules.size()) + " events)");
+        Serial.println("Processing date: " + date + " (" + String(zonesForDay.size()) + " zones)");
         daysProcessed++;
 
         // TODO: Save to SPIFFS as /schedule_YYYY-MM-DD.json for offline resilience
         // This will be implemented in Phase 2 with proper SPIFFS caching
 
-        for (JsonObject event : daySchedules) {
-            uint32_t serverId = event["id"] | 0;
-            uint8_t zoneId = event["zone_id"] | 0;
-            String startTime = event["start_time"] | "00:00";
-            uint16_t durationMin = event["duration_min"] | 0;
-            uint8_t repeatCount = event["repeat_count"] | 1;
-            uint16_t restTimeMin = event["rest_time_min"] | 0;
+        // Each zone has an events array
+        for (JsonObject zone : zonesForDay) {
+            uint8_t zoneId = zone["zone_id"] | 0;
+            JsonArray events = zone["events"];
 
-            // Parse start time (format: "HH:MM")
-            int colonPos = startTime.indexOf(':');
-            if (colonPos <= 0 || zoneId == 0) continue;
+            if (zoneId == 0 || events.isNull()) continue;
 
-            uint8_t hour = startTime.substring(0, colonPos).toInt();
-            uint8_t minute = startTime.substring(colonPos + 1).toInt();
+            Serial.println("  Zone " + String(zoneId) + ": " + String(events.size()) + " events");
 
-            if (hour > 23 || minute > 59) continue;
+            // Process each event for this zone
+            for (JsonObject event : events) {
+                uint32_t serverId = event["id"] | 0;
+                String startTime = event["start_time"] | "00:00";
+                uint16_t durationMin = event["duration_min"] | 0;
+                uint8_t repeatCount = event["repeat_count"] | 1;
+                uint16_t restTimeMin = event["rest_time_min"] | 0;
 
-            // Add to ScheduleManager (AI schedule with expiry at end of day)
-            uint8_t scheduleId = scheduleManager->addAISchedule(
-                zoneId, 0x7F, hour, minute, durationMin, 0
-            );
+                Serial.println("    Event: id=" + String(serverId) + " time=" + startTime + " duration=" + String(durationMin));
 
-            if (scheduleId > 0) {
-                totalEvents++;
-                Serial.println("  Added: Zone " + String(zoneId) + " at " +
-                             String(hour) + ":" + String(minute) + " (" + date + ")");
+                // Parse start time (format: "HH:MM")
+                int colonPos = startTime.indexOf(':');
+                if (colonPos <= 0) continue;
+
+                uint8_t hour = startTime.substring(0, colonPos).toInt();
+                uint8_t minute = startTime.substring(colonPos + 1).toInt();
+
+                if (hour > 23 || minute > 59) continue;
+
+                // Add to ScheduleManager (AI schedule with expiry at end of day)
+                uint8_t scheduleId = scheduleManager->addAISchedule(
+                    zoneId, 0x7F, hour, minute, durationMin, 0
+                );
+
+                if (scheduleId > 0) {
+                    totalEvents++;
+                    Serial.println("  Added: Zone " + String(zoneId) + " at " +
+                                String(hour) + ":" + String(minute) + " (" + date + ")");
+                }
             }
         }
     }
-
     Serial.println("HTTP Client: Loaded " + String(totalEvents) +
                    " events across " + String(daysProcessed) + " days");
 
