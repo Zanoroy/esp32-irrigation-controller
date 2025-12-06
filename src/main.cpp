@@ -33,6 +33,7 @@
 #include "schedule_manager.h"
 #include "mqtt_manager.h"
 #include "http_client.h"
+#include "event_logger.h"
 
 // Define constants
 const bool   PUMP_PIN_DEFAULT = false; // Set to true to set PUMP_PIN as On by default
@@ -55,14 +56,18 @@ ScheduleManager scheduleManager;
 MQTTManager mqttManager;
 HTTPScheduleClient httpClient;
 HunterRoam hunterController(HUNTER_PIN);
+EventLogger eventLogger;
 // Zone control callback function for ScheduleManager
 void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration) {
   Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF") + " for " + String(duration) + " minutes");
 
   if (enable) {
+    // Log event start
+    uint32_t eventId = eventLogger.logEventStart(zoneNumber, duration, EventType::SCHEDULED, 0);
+
     // Start the zone using Hunter protocol (zone, time in minutes)
     hunterController.startZone(zoneNumber, duration);
-    Serial.println("Zone " + String(zoneNumber) + " started via schedule for " + String(duration) + " minutes");
+    Serial.println("Zone " + String(zoneNumber) + " started via schedule for " + String(duration) + " minutes (Event ID: " + String(eventId) + ")");
 
     // Publish MQTT zone status
     mqttManager.publishZoneStatus(zoneNumber, "running", duration * 60);
@@ -70,6 +75,9 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration) {
     // Stop the zone
     hunterController.stopZone(zoneNumber);
     Serial.println("Zone " + String(zoneNumber) + " stopped via schedule");
+
+    // Log event end (completed normally)
+    eventLogger.logEventEnd(0, true);
 
     // Publish MQTT zone status
     mqttManager.publishZoneStatus(zoneNumber, "stopped", 0);
@@ -210,6 +218,15 @@ void setup(void){
     Serial.println("Using default settings");
   }
 
+  // Initialize Event Logger
+  Serial.println("");
+  Serial.println("Initializing Event Logger...");
+  if (eventLogger.begin()) {
+    Serial.println("Event Logger initialized successfully");
+  } else {
+    Serial.println("WARNING: Event Logger failed to initialize");
+  }
+
   // Initialize Schedule Manager
   Serial.println("");
   Serial.println("Initializing Schedule Manager...");
@@ -284,6 +301,7 @@ void setup(void){
   hunterServer.setRTCModule(&rtcModule);
   hunterServer.setConfigManager(&configManager);
   hunterServer.setScheduleManager(&scheduleManager);
+  hunterServer.setEventLogger(&eventLogger);
   hunterServer.begin();
 
   // Initialize MQTT Manager

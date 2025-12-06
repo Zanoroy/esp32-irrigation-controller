@@ -3,6 +3,7 @@
 #include "rtc_module.h"
 #include "config_manager.h"
 #include "schedule_manager.h"
+#include "event_logger.h"
 #include <ArduinoJson.h>
 
 // HTML interface for irrigation control
@@ -93,6 +94,7 @@ const int HunterWebServer::PUMP_PIN = 5;
 RTCModule* HunterWebServer::rtcModule = nullptr;
 ConfigManager* HunterWebServer::configManager = nullptr;
 ScheduleManager* HunterWebServer::scheduleManager = nullptr;
+EventLogger* HunterWebServer::eventLogger = nullptr;
 ZoneSchedule HunterWebServer::schedules[16] = {}; // Initialize all to default values
 int HunterWebServer::activeZones[16] = {}; // All zones start inactive
 unsigned long HunterWebServer::zoneStartTimes[16] = {}; // All start times zero
@@ -134,6 +136,11 @@ void HunterWebServer::begin() {
     server.on("/api/mqtt/config", HTTP_GET, handleGetMQTTConfig);
     server.on("/api/mqtt/config", HTTP_POST, handleSetMQTTConfig);
 
+    // Event logging endpoints
+    server.on("/api/events", HTTP_GET, handleGetEvents);
+    server.on("/api/events", HTTP_DELETE, handleClearEvents);
+    server.on("/api/events/stats", HTTP_GET, handleGetEventStats);
+
     // 404 handler
     server.onNotFound(handleNotFound);
 
@@ -155,6 +162,9 @@ void HunterWebServer::begin() {
     Serial.println("  GET  /api/schedules/active - Get active zones status");
     Serial.println("  POST /api/schedules/ai    - Set AI schedules from Node-RED");
     Serial.println("  DELETE /api/schedules/ai  - Clear AI schedules");
+    Serial.println("  GET  /api/events          - Get watering event logs");
+    Serial.println("  DELETE /api/events        - Clear event logs");
+    Serial.println("  GET  /api/events/stats    - Get event statistics");
 }
 
 void HunterWebServer::handleRoot() {
@@ -241,6 +251,12 @@ void HunterWebServer::processCommands() {
 
     // Use ScheduleManager if available, otherwise fallback to old method
     if (scheduleManager) {
+        // Log manual event start
+        uint32_t eventId = 0;
+        if (eventLogger) {
+            eventId = eventLogger->logEventStart(zoneNum, timeMin, EventType::MANUAL, 0);
+        }
+
         auto result = scheduleManager->startZoneManual(zoneNum, timeMin);
 
         if (result.hasConflict && result.stoppedZone == 0) {
@@ -253,10 +269,16 @@ void HunterWebServer::processCommands() {
         if (result.hasConflict && result.stoppedZone > 0) {
             message += " (stopped zone " + String(result.stoppedZone) + " to resolve conflict)";
         }
+        if (eventId > 0) {
+            message += " [Event ID: " + String(eventId) + "]";
+        }
 
         String jsonResponse = "{\"status\":\"success\",\"message\":\"" + message + "\",\"zone\":" + String(zoneNum) + ",\"duration_minutes\":" + String(timeMin);
         if (result.stoppedZone > 0) {
             jsonResponse += ",\"stopped_zone\":" + String(result.stoppedZone);
+        }
+        if (eventId > 0) {
+            jsonResponse += ",\"event_id\":" + String(eventId);
         }
         jsonResponse += "}";
 
@@ -316,6 +338,11 @@ void HunterWebServer::handleStopZone() {
         bool success = scheduleManager->stopZone(zoneNum);
 
         if (success) {
+            // Log event completion (interrupted since stopped manually)
+            if (eventLogger) {
+                eventLogger->logEventEnd(0, false); // false = interrupted
+            }
+
             String jsonResponse = "{\"status\":\"success\",\"message\":\"Zone " + String(zoneNum) + " stopped\",\"zone\":" + String(zoneNum) + "}";
             serverInstance->server.send(200, "application/json", jsonResponse);
             Serial.println("API: Zone " + String(zoneNum) + " stopped");
@@ -1186,4 +1213,109 @@ void HunterWebServer::handleSetMQTTConfig() {
     String jsonResponse = "{\"status\":\"success\",\"message\":\"MQTT configuration updated\"}";
     serverInstance->server.send(200, "application/json", jsonResponse);
     Serial.println("API: MQTT configuration updated");
+}
+
+// Event logging handlers
+void HunterWebServer::handleGetEvents() {
+    if (!serverInstance || !eventLogger) {
+        String response = "{\"error\":\"Event logger not initialized\"}";
+        if (serverInstance) {
+            serverInstance->server.send(500, "application/json", response);
+        }
+        return;
+    }
+
+    // Parse query parameters
+    int limit = 100;
+    time_t startDate = 0;
+    time_t endDate = 0;
+
+    if (serverInstance->server.hasArg("limit")) {
+        limit = serverInstance->server.arg("limit").toInt();
+        if (limit < 1) limit = 100;
+        if (limit > 1000) limit = 1000;
+    }
+
+    if (serverInstance->server.hasArg("start_date")) {
+        // Expected format: Unix timestamp
+        startDate = serverInstance->server.arg("start_date").toInt();
+    }
+
+    if (serverInstance->server.hasArg("end_date")) {
+        endDate = serverInstance->server.arg("end_date").toInt();
+    }
+
+    String jsonResponse = eventLogger->getEventsJson(limit, startDate, endDate);
+    serverInstance->server.send(200, "application/json", jsonResponse);
+    Serial.println("API: Retrieved event logs (limit: " + String(limit) + ")");
+}
+
+void HunterWebServer::handleClearEvents() {
+    if (!serverInstance || !eventLogger) {
+        String response = "{\"error\":\"Event logger not initialized\"}";
+        if (serverInstance) {
+            serverInstance->server.send(500, "application/json", response);
+        }
+        return;
+    }
+
+    // Check if we should clear all or just old events
+    bool clearAll = false;
+    int daysToKeep = 365;
+
+    if (serverInstance->server.hasArg("all")) {
+        String allParam = serverInstance->server.arg("all");
+        clearAll = (allParam == "true" || allParam == "1");
+    }
+
+    if (serverInstance->server.hasArg("days")) {
+        daysToKeep = serverInstance->server.arg("days").toInt();
+        if (daysToKeep < 1) daysToKeep = 365;
+    }
+
+    JsonDocument doc;
+
+    if (clearAll) {
+        bool success = eventLogger->clearAllEvents();
+        doc["status"] = success ? "success" : "error";
+        doc["message"] = success ? "All events cleared" : "Failed to clear events";
+        doc["cleared"] = success ? "all" : 0;
+    } else {
+        int cleared = eventLogger->clearOldEvents(daysToKeep);
+        doc["status"] = "success";
+        doc["message"] = "Old events cleared";
+        doc["cleared"] = cleared;
+        doc["kept_days"] = daysToKeep;
+    }
+
+    String jsonResponse;
+    serializeJson(doc, jsonResponse);
+    serverInstance->server.send(200, "application/json", jsonResponse);
+
+    Serial.println("API: Cleared events (all=" + String(clearAll) + ", days=" + String(daysToKeep) + ")");
+}
+
+void HunterWebServer::handleGetEventStats() {
+    if (!serverInstance || !eventLogger) {
+        String response = "{\"error\":\"Event logger not initialized\"}";
+        if (serverInstance) {
+            serverInstance->server.send(500, "application/json", response);
+        }
+        return;
+    }
+
+    time_t startDate = 0;
+    time_t endDate = 0;
+
+    if (serverInstance->server.hasArg("start_date")) {
+        startDate = serverInstance->server.arg("start_date").toInt();
+    }
+
+    if (serverInstance->server.hasArg("end_date")) {
+        endDate = serverInstance->server.arg("end_date").toInt();
+    }
+
+    String jsonResponse = eventLogger->getStatistics(startDate, endDate);
+    serverInstance->server.send(200, "application/json", jsonResponse);
+    Serial.println("API: Retrieved event statistics");
 }

@@ -50,6 +50,9 @@ private:
     // Schedule manager reference
     static class ScheduleManager* scheduleManager;
 
+    // Event logger reference
+    static class EventLogger* eventLogger;
+
     // Private methods for handling requests
     static void handleRoot();
     static void handleNotFound();
@@ -83,6 +86,11 @@ private:
     static void handleGetMQTTConfig();
     static void handleSetMQTTConfig();
 
+    // Event logging handlers
+    static void handleGetEvents();
+    static void handleClearEvents();
+    static void handleGetEventStats();
+
 public:
     // Constructor
     HunterWebServer(int port = 80);
@@ -98,6 +106,9 @@ public:
 
     // Set Schedule manager reference
     void setScheduleManager(class ScheduleManager* scheduler) { scheduleManager = scheduler; }
+
+    // Set Event logger reference
+    void setEventLogger(class EventLogger* logger) { eventLogger = logger; }
 
     // Process any pending commands (call this in main loop)
     void processCommands();
