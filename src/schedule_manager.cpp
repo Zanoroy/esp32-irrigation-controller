@@ -122,15 +122,14 @@ void ScheduleManager::checkAndExecuteSchedules() {
         return; // RTC not available
     }
 
-    // Get current time from RTC and apply timezone offset
-    DateTime utcTime = rtcModule->getCurrentTime();
-    if (!utcTime.isValid()) {
+    // Get current time from RTC (already in local time)
+    DateTime now = rtcModule->getCurrentTime();
+    if (!now.isValid()) {
         return;
     }
 
-    // Apply timezone offset (in half-hours)
-    int offsetMinutes = configManager->getTimezoneOffset() * 30;
-    DateTime now = DateTime(utcTime.unixtime() + (offsetMinutes * 60));
+    // RTC is already configured with local time, no timezone conversion needed
+    // Schedules are stored in local time (e.g., 22:15 = 10:15 PM local)
 
     // Check each schedule
     for (int i = 0; i < MAX_SCHEDULES; i++) {

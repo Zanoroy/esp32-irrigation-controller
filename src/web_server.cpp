@@ -141,6 +141,25 @@ void HunterWebServer::begin() {
     server.on("/api/events", HTTP_DELETE, handleClearEvents);
     server.on("/api/events/stats", HTTP_GET, handleGetEventStats);
 
+    // CORS handler for OPTIONS requests
+    server.on("/api/events", HTTP_OPTIONS, []() {
+        if (serverInstance) {
+            serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
+            serverInstance->server.sendHeader("Access-Control-Allow-Methods", "GET, DELETE, OPTIONS");
+            serverInstance->server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+            serverInstance->server.send(204);
+        }
+    });
+
+    server.on("/api/events/stats", HTTP_OPTIONS, []() {
+        if (serverInstance) {
+            serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
+            serverInstance->server.sendHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+            serverInstance->server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+            serverInstance->server.send(204);
+        }
+    });
+
     // 404 handler
     server.onNotFound(handleNotFound);
 
@@ -1246,6 +1265,7 @@ void HunterWebServer::handleGetEvents() {
     }
 
     String jsonResponse = eventLogger->getEventsJson(limit, startDate, endDate);
+    serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
     serverInstance->server.send(200, "application/json", jsonResponse);
     Serial.println("API: Retrieved event logs (limit: " + String(limit) + ")");
 }
@@ -1290,6 +1310,7 @@ void HunterWebServer::handleClearEvents() {
 
     String jsonResponse;
     serializeJson(doc, jsonResponse);
+    serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
     serverInstance->server.send(200, "application/json", jsonResponse);
 
     Serial.println("API: Cleared events (all=" + String(clearAll) + ", days=" + String(daysToKeep) + ")");
@@ -1316,6 +1337,7 @@ void HunterWebServer::handleGetEventStats() {
     }
 
     String jsonResponse = eventLogger->getStatistics(startDate, endDate);
+    serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
     serverInstance->server.send(200, "application/json", jsonResponse);
     Serial.println("API: Retrieved event statistics");
 }
