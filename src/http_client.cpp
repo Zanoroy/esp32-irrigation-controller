@@ -72,12 +72,11 @@ void HTTPScheduleClient::setDeviceId(const String& id) {
     Serial.println("HTTP Client: Device ID set to " + deviceId);
 }
 
-String HTTPScheduleClient::buildScheduleUrl(int days, int8_t zoneId) {
-    String url = serverUrl + "/api/schedules/daily?days=" + String(days);
+String HTTPScheduleClient::buildScheduleUrl(const String& date, int8_t zoneId) {
+    String url = serverUrl + "/api/schedules/daily?date=" + date;
     if (zoneId > 0) {
         url += "&zone_id=" + String(zoneId);
     }
-    url += "&device_id=" + deviceId;
     return url;
 }
 
@@ -312,7 +311,7 @@ bool HTTPScheduleClient::fetchDailySchedule(const String& date, int8_t zoneId) {
     Serial.println("HTTP Client: Fetching schedule for " + date +
                    (zoneId > 0 ? " (zone " + String(zoneId) + ")" : " (all zones)"));
 
-    String url = buildScheduleUrl(1, zoneId);
+    String url = buildScheduleUrl(date, zoneId);
     Serial.println("  URL: " + url);
 
     String response;
@@ -459,46 +458,8 @@ bool HTTPScheduleClient::testConnection() {
 // ===== NEW METHODS FOR 5-DAY LOOKAHEAD AND EVENT TRACKING =====
 
 bool HTTPScheduleClient::fetch5DaySchedule(int8_t zoneId) {
-    if (!configManager || !scheduleManager) {
-        lastError = "Client not initialized";
-        return false;
-    }
-
-    if (WiFi.status() != WL_CONNECTED) {
-        lastError = "WiFi not connected";
-        Serial.println("HTTP Client: " + lastError);
-        consecutiveFailures++;
-        return false;
-    }
-
-    Serial.println("HTTP Client: Fetching 5-day lookahead schedule" +
-                   (zoneId > 0 ? " (zone " + String(zoneId) + ")" : " (all zones)"));
-
-    String url = buildScheduleUrl(5, zoneId);  // days=5
-    Serial.println("  URL: " + url);
-
-    String response;
-    if (!executeRequest(url, response)) {
-        Serial.println("HTTP Client: 5-day fetch failed - " + lastError);
-        consecutiveFailures++;
-        return false;
-    }
-
-    Serial.println("HTTP Client: Received 5-day schedule (" + String(response.length()) + " bytes)");
-
-    // Parse and cache to SPIFFS (will be implemented in ScheduleManager)
-    bool success = parse5DayScheduleResponse(response);
-
-    if (success) {
-        lastFetchTime = millis();
-        consecutiveFailures = 0;  // Reset failure counter
-        Serial.println("HTTP Client: ✅ 5-day schedule loaded successfully");
-    } else {
-        consecutiveFailures++;
-        Serial.println("HTTP Client: ❌ Failed to parse 5-day schedule");
-    }
-
-    return success;
+    // This is now just a wrapper around the unified fetchSchedule method
+    return fetchSchedule(5, zoneId);
 }
 
 bool HTTPScheduleClient::parse5DayScheduleResponse(const String& json) {
@@ -782,7 +743,7 @@ bool HTTPScheduleClient::clearOldCache(int daysToKeep) {
     return true;
 }
 
-// Unified fetch method that supports 1-5 days and includes caching
+// Unified fetch method that supports 1-5 days by calling API once per day
 bool HTTPScheduleClient::fetchSchedule(int days, int8_t zoneId) {
     if (days < 1 || days > 5) {
         lastError = "Invalid days parameter (must be 1-5)";
@@ -805,47 +766,69 @@ bool HTTPScheduleClient::fetchSchedule(int days, int8_t zoneId) {
 
     Serial.println("HTTP Client: Fetching " + String(days) + "-day schedule" +
                    (zoneId > 0 ? " (zone " + String(zoneId) + ")" : " (all zones)"));
+    Serial.println("  Server: " + serverUrl);
 
-    String url = buildScheduleUrl(days, zoneId);
-    Serial.println("  URL: " + url);
+    // Clear existing AI schedules before loading new ones
+    scheduleManager->clearAISchedules();
 
-    String response;
-    if (!executeRequest(url, response)) {
-        Serial.println("HTTP Client: Fetch failed - " + lastError);
-        Serial.println("  Attempting to load from cache...");
-        consecutiveFailures++;
+    // Get current time for calculating dates
+    time_t now = time(nullptr);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
 
-        // Try to load from cache as fallback
-        return loadLatestCachedSchedule();
-    }
+    int totalEventsLoaded = 0;
+    int daysSuccessful = 0;
 
-    Serial.println("HTTP Client: Received schedule (" + String(response.length()) + " bytes)");
+    // Fetch schedule for each day
+    for (int dayOffset = 0; dayOffset < days; dayOffset++) {
+        // Calculate date for this iteration
+        time_t targetTime = now + (dayOffset * 86400);  // Add days in seconds
+        localtime_r(&targetTime, &timeinfo);
 
-    // Parse the schedule
-    bool success = parse5DayScheduleResponse(response);
-
-    if (success) {
-        lastFetchTime = millis();
-        consecutiveFailures = 0;
-
-        // Cache the schedule to SPIFFS for offline use
-        time_t now = time(nullptr);
-        struct tm timeinfo;
-        localtime_r(&now, &timeinfo);
         char dateStr[11];
         strftime(dateStr, sizeof(dateStr), "%Y-%m-%d", &timeinfo);
 
-        cacheScheduleToSPIFFS(String(dateStr), response);
+        Serial.println("\n  Day " + String(dayOffset + 1) + "/" + String(days) + ": " + String(dateStr));
 
-        Serial.println("HTTP Client: ✅ " + String(days) + "-day schedule loaded and cached successfully");
+        String url = buildScheduleUrl(String(dateStr), zoneId);
+        Serial.println("    URL: " + url);
+
+        String response;
+        if (!executeRequest(url, response)) {
+            Serial.println("    ⚠️  Failed to fetch - " + lastError);
+            continue;  // Continue with next day even if this one fails
+        }
+
+        Serial.println("    Received (" + String(response.length()) + " bytes)");
+
+        // Parse this day's schedule and add to ScheduleManager
+        if (parseScheduleResponse(response, 1)) {
+            daysSuccessful++;
+            Serial.println("    ✅ Loaded schedules successfully");
+
+            // Cache this day's response
+            cacheScheduleToSPIFFS(String(dateStr), response);
+        } else {
+            Serial.println("    ⚠️  Failed to parse response");
+        }
+
+        // Small delay between requests to avoid overwhelming server
+        if (dayOffset < days - 1) {
+            delay(100);
+        }
+    }
+
+    Serial.println("");
+    if (daysSuccessful > 0) {
+        lastFetchTime = millis();
+        consecutiveFailures = 0;
+        Serial.println("HTTP Client: ✅ Successfully loaded schedules from " +
+                       String(daysSuccessful) + "/" + String(days) + " days");
+        return true;
     } else {
         consecutiveFailures++;
-        Serial.println("HTTP Client: ❌ Failed to parse schedule");
-
-        // Try cache as last resort
+        Serial.println("HTTP Client: ❌ Failed to fetch any schedules");
         Serial.println("  Attempting to load from cache...");
         return loadLatestCachedSchedule();
     }
-
-    return success;
 }

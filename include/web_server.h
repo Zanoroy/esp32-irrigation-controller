@@ -9,6 +9,7 @@
 class RTCModule;
 class ConfigManager;
 class ScheduleManager;
+class HTTPScheduleClient;
 
 // Zone schedule structure
 struct ZoneSchedule {
@@ -53,6 +54,9 @@ private:
     // Event logger reference
     static class EventLogger* eventLogger;
 
+    // HTTP Schedule Client reference
+    static class HTTPScheduleClient* httpClient;
+
     // Private methods for handling requests
     static void handleRoot();
     static void handleNotFound();
@@ -76,6 +80,7 @@ private:
     static void handleGetActiveZones();
     static void handleSetAISchedules();
     static void handleClearAISchedules();
+    static void handleFetchSchedules();
 
     // Device status and control handlers for Node-RED
     static void handleGetDeviceStatus();
@@ -109,6 +114,9 @@ public:
 
     // Set Event logger reference
     void setEventLogger(class EventLogger* logger) { eventLogger = logger; }
+
+    // Set HTTP client reference
+    void setHTTPClient(class HTTPScheduleClient* client) { httpClient = client; }
 
     // Process any pending commands (call this in main loop)
     void processCommands();

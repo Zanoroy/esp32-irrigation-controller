@@ -4,6 +4,7 @@
 #include "config_manager.h"
 #include "schedule_manager.h"
 #include "event_logger.h"
+#include "http_client.h"
 #include <ArduinoJson.h>
 
 // HTML interface for irrigation control
@@ -95,6 +96,7 @@ RTCModule* HunterWebServer::rtcModule = nullptr;
 ConfigManager* HunterWebServer::configManager = nullptr;
 ScheduleManager* HunterWebServer::scheduleManager = nullptr;
 EventLogger* HunterWebServer::eventLogger = nullptr;
+HTTPScheduleClient* HunterWebServer::httpClient = nullptr;
 ZoneSchedule HunterWebServer::schedules[16] = {}; // Initialize all to default values
 int HunterWebServer::activeZones[16] = {}; // All zones start inactive
 unsigned long HunterWebServer::zoneStartTimes[16] = {}; // All start times zero
@@ -126,6 +128,7 @@ void HunterWebServer::begin() {
     server.on("/api/schedules/active", HTTP_GET, handleGetActiveZones);
     server.on("/api/schedules/ai", HTTP_POST, handleSetAISchedules);
     server.on("/api/schedules/ai", HTTP_DELETE, handleClearAISchedules);
+    server.on("/api/schedules/fetch", HTTP_POST, handleFetchSchedules);
 
     // Device status and control endpoints for Node-RED
     server.on("/api/device/status", HTTP_GET, handleGetDeviceStatus);
@@ -957,6 +960,11 @@ void HunterWebServer::checkSchedules() {
 void HunterWebServer::handleGetSchedules() {
     if (!serverInstance) return;
 
+    // Add CORS headers
+    serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
+    serverInstance->server.sendHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    serverInstance->server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+
     if (!scheduleManager) {
         String jsonError = "{\"status\":\"error\",\"message\":\"Schedule manager not available\"}";
         serverInstance->server.send(500, "application/json", jsonError);
@@ -1138,6 +1146,52 @@ void HunterWebServer::handleDeviceCommand() {
         String jsonError = "{\"status\":\"error\",\"message\":\"Command execution failed\"}";
         serverInstance->server.send(400, "application/json", jsonError);
         Serial.println("API: Device command failed");
+    }
+}
+
+void HunterWebServer::handleFetchSchedules() {
+    if (!serverInstance) return;
+
+    // Add CORS headers
+    serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
+    serverInstance->server.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    serverInstance->server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (!httpClient) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"HTTP client not available\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        return;
+    }
+
+    if (serverInstance->server.method() != HTTP_POST) {
+        String jsonError = "{\"status\":\"error\",\"message\":\"POST method required\"}";
+        serverInstance->server.send(405, "application/json", jsonError);
+        return;
+    }
+
+    // Get optional days parameter (default 5)
+    int days = 5;
+    if (serverInstance->server.hasArg("days")) {
+        days = serverInstance->server.arg("days").toInt();
+        if (days < 1 || days > 5) {
+            days = 5;
+        }
+    }
+
+    Serial.println("API: Manual schedule fetch triggered (" + String(days) + " days)");
+
+    // Trigger the fetch in the background
+    bool success = httpClient->fetchSchedule(days);
+
+    if (success) {
+        String jsonResponse = "{\"status\":\"success\",\"message\":\"Schedules fetched successfully\",\"days\":" + String(days) + "}";
+        serverInstance->server.send(200, "application/json", jsonResponse);
+        Serial.println("API: Schedule fetch completed successfully");
+    } else {
+        String error = httpClient->getLastError();
+        String jsonError = "{\"status\":\"error\",\"message\":\"Schedule fetch failed\",\"error\":\"" + error + "\"}";
+        serverInstance->server.send(500, "application/json", jsonError);
+        Serial.println("API: Schedule fetch failed - " + error);
     }
 }
 

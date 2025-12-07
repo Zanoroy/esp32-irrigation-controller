@@ -302,6 +302,7 @@ void setup(void){
   hunterServer.setConfigManager(&configManager);
   hunterServer.setScheduleManager(&scheduleManager);
   hunterServer.setEventLogger(&eventLogger);
+  hunterServer.setHTTPClient(&httpClient);
   hunterServer.begin();
 
   // Initialize MQTT Manager

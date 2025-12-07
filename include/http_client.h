@@ -50,7 +50,7 @@ private:
     static const int RETRY_DELAY = 2000;        // 2 seconds between retries
 
     // Helper methods
-    String buildScheduleUrl(int days = 1, int8_t zoneId = -1);  // Support multi-day fetch
+    String buildScheduleUrl(const String& date, int8_t zoneId = -1);  // Build URL with date parameter
     String buildCompletionUrl();
     String buildEventStartUrl();
     bool parseScheduleResponse(const String& json, int expectedDays = 1);
