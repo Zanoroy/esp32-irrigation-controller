@@ -23,9 +23,9 @@ bool ConfigManager::begin(RTCModule* rtc) {
 }
 
 void ConfigManager::setDefaults() {
-    // Timezone defaults (Australia/Adelaide UTC+9:30)
-    config.timezoneOffset = 19; // 19 half-hours = UTC+9:30
-    config.daylightSaving = false;
+    // Timezone defaults (Australia/Adelaide ACDT UTC+10:30)
+    config.timezoneOffset = 19; // 19 half-hours = UTC+9:30 (ACDT)
+    config.daylightSaving = true; // Enable daylight saving by default
 
     // WiFi defaults (empty - use main.cpp defaults)
     strcpy(config.wifiSSID, "");
@@ -192,8 +192,8 @@ String ConfigManager::getLocalTimeString() {
              localTime.year(), localTime.month(), localTime.day(),
              localTime.hour(), localTime.minute(), localTime.second());
 
-    int hours = config.timezoneOffset / 2;
-    int minutes = (config.timezoneOffset % 2) * 30;
+    int hours = totalOffset / 3600;
+    int minutes = (totalOffset % 3600) / 60;
 
     char timezoneStr[16];
     snprintf(timezoneStr, sizeof(timezoneStr), "%+d:%02d", hours, minutes);

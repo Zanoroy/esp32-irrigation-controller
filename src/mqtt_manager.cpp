@@ -422,12 +422,15 @@ void MQTTManager::publishDeviceConfig() {
 
     JsonDocument doc;
     DateTime utcTime = rtcModule->getCurrentTime();
-    int offsetMinutes = configManager->getTimezoneOffset() * 30;
-    DateTime localTime = DateTime(utcTime.unixtime() + (offsetMinutes * 60));
-
+    int offsetSeconds = configManager->getTimezoneOffset() * 1800; // Convert half-hours to seconds
+    // Apply daylight saving time (add 1 hour if enabled)
+    if (configManager->isDaylightSaving()) {
+        offsetSeconds += 3600;
+    }
+    DateTime localTime = DateTime(utcTime.unixtime() + offsetSeconds);
     char timeBuffer[32];
-    int offsetHours = offsetMinutes / 60;
-    int offsetMins = abs(offsetMinutes) % 60;
+    int offsetHours = offsetSeconds / 3600;
+    int offsetMins = abs(offsetSeconds) % 3600 / 60;
     sprintf(timeBuffer, "%04d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
             localTime.year(), localTime.month(), localTime.day(),
             localTime.hour(), localTime.minute(), localTime.second(),
@@ -447,6 +450,7 @@ void MQTTManager::publishDeviceConfig() {
     doc["mqtt_port"] = configManager->getMQTTPort();
     doc["topic_prefix"] = configManager->getMQTTTopicPrefix();
     doc["timezone"] = configManager->getTimezoneOffset() / 2.0;
+    doc["daylight_saving"] = configManager->isDaylightSaving();
     doc["max_zones"] = configManager->getMaxEnabledZones();
 
     String json;

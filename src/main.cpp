@@ -58,12 +58,13 @@ HTTPScheduleClient httpClient;
 HunterRoam hunterController(HUNTER_PIN);
 EventLogger eventLogger;
 // Zone control callback function for ScheduleManager
-void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration) {
+void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration, ScheduleType schedType, uint8_t schedId) {
   Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF") + " for " + String(duration) + " minutes");
 
   if (enable) {
-    // Log event start
-    uint32_t eventId = eventLogger.logEventStart(zoneNumber, duration, EventType::SCHEDULED, 0);
+    // Log event start with correct type based on schedule type
+    EventType eventType = (schedType == AI) ? EventType::AI : EventType::SCHEDULED;
+    uint32_t eventId = eventLogger.logEventStart(zoneNumber, duration, eventType, schedId);
 
     // Start the zone using Hunter protocol (zone, time in minutes)
     hunterController.startZone(zoneNumber, duration);

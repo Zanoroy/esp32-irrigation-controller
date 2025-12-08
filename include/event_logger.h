@@ -10,7 +10,8 @@
 // Event types
 enum class EventType {
     MANUAL,      // Manual start via API or MQTT
-    SCHEDULED,   // AI/baseline scheduled event
+    SCHEDULED,   // Baseline scheduled event
+    AI,          // AI-generated scheduled event
     SYSTEM       // System event (e.g., stop due to error)
 };
 

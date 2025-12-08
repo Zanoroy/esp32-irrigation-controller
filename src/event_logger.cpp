@@ -423,6 +423,7 @@ String EventLogger::eventTypeToString(EventType type) {
     switch (type) {
         case EventType::MANUAL: return "manual";
         case EventType::SCHEDULED: return "scheduled";
+        case EventType::AI: return "ai";
         case EventType::SYSTEM: return "system";
         default: return "unknown";
     }

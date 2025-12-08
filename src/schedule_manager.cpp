@@ -122,14 +122,19 @@ void ScheduleManager::checkAndExecuteSchedules() {
         return; // RTC not available
     }
 
-    // Get current time from RTC (already in local time)
-    DateTime now = rtcModule->getCurrentTime();
-    if (!now.isValid()) {
+    // Get current time from RTC (in UTC)
+    DateTime nowUTC = rtcModule->getCurrentTime();
+    if (!nowUTC.isValid()) {
         return;
     }
 
-    // RTC is already configured with local time, no timezone conversion needed
-    // Schedules are stored in local time (e.g., 22:15 = 10:15 PM local)
+    // Convert UTC to local time for schedule comparison
+    // timezoneOffset is in half-hours (e.g., 19 = UTC+9:30, 21 = UTC+10:30)
+    int offsetSeconds = configManager->getTimezoneOffset() * 1800; // Convert half-hours to seconds
+    if (configManager->isDaylightSaving()) {
+        offsetSeconds += 3600; // Add 1 hour for DST
+    }
+    DateTime now = DateTime(nowUTC.unixtime() + offsetSeconds);
 
     // Check each schedule
     for (int i = 0; i < MAX_SCHEDULES; i++) {
@@ -152,6 +157,11 @@ void ScheduleManager::checkAndExecuteSchedules() {
             if (activeSlot >= 0) {
                 activeZones[activeSlot].isScheduled = true;
                 activeZones[activeSlot].scheduleId = schedules[i].id;
+
+                // Call zone control callback with schedule type info
+                if (zoneControlCallback) {
+                    zoneControlCallback(schedules[i].zone, true, schedules[i].duration, schedules[i].type, schedules[i].id);
+                }
             }
         }
     }
@@ -196,9 +206,9 @@ ConflictResult ScheduleManager::startZoneManual(uint8_t zone, uint16_t duration)
         activeZones[freeSlot].scheduleId = 0;
         activeZones[freeSlot].timeRemaining = duration * 60; // Duration in seconds
 
-        // Call zone control callback
+        // Call zone control callback (manual start, use BASIC type)
         if (zoneControlCallback) {
-            zoneControlCallback(zone, true, duration);
+            zoneControlCallback(zone, true, duration, BASIC, 0);
         }
 
         Serial.printf("ScheduleManager: Started zone %d for %d minutes\n", zone, duration);
@@ -213,9 +223,9 @@ bool ScheduleManager::stopZone(uint8_t zone) {
         return false;
     }
 
-    // Call zone control callback
+    // Call zone control callback (stop)
     if (zoneControlCallback) {
-        zoneControlCallback(zone, false, 0);
+        zoneControlCallback(zone, false, 0, BASIC, 0);
     }
 
     // Clear the active zone slot
@@ -435,7 +445,7 @@ uint32_t ScheduleManager::getCurrentUnixTime() {
     return millis() / 1000; // Simplified - should use actual RTC time
 }
 
-void ScheduleManager::setZoneControlCallback(void (*callback)(uint8_t zone, bool state, uint16_t duration)) {
+void ScheduleManager::setZoneControlCallback(void (*callback)(uint8_t zone, bool state, uint16_t duration, ScheduleType schedType, uint8_t schedId)) {
     zoneControlCallback = callback;
 }
 
@@ -476,7 +486,7 @@ void ScheduleManager::cancelZoneForRain(uint8_t zone) {
     if (activeIndex >= 0) {
         activeZones[activeIndex].state = RAINCANCELLED;
         if (zoneControlCallback) {
-            zoneControlCallback(zone, false, 0);
+            zoneControlCallback(zone, false, 0, BASIC, 0);
         }
         Serial.println("ScheduleManager: Zone " + String(zone) + " cancelled due to rain");
     }
@@ -494,12 +504,15 @@ String ScheduleManager::getDeviceStatusJSON() {
 
     // Get current time with timezone
     DateTime utcTime = rtcModule->getCurrentTime();
-    int offsetMinutes = configManager->getTimezoneOffset() * 30;
-    DateTime localTime = DateTime(utcTime.unixtime() + (offsetMinutes * 60));
+    int offsetSeconds = configManager->getTimezoneOffset() * 1800; // Convert half-hours to seconds
+    if (configManager->isDaylightSaving()) {
+        offsetSeconds += 3600; // Add 1 hour for DST
+    }
+    DateTime localTime = DateTime(utcTime.unixtime() + offsetSeconds);
 
     char timeBuffer[32];
-    int offsetHours = offsetMinutes / 60;
-    int offsetMins = abs(offsetMinutes) % 60;
+    int offsetHours = offsetSeconds / 3600;
+    int offsetMins = abs(offsetSeconds) % 3600 / 60;
     sprintf(timeBuffer, "%04d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
             localTime.year(), localTime.month(), localTime.day(),
             localTime.hour(), localTime.minute(), localTime.second(),
@@ -549,9 +562,13 @@ String ScheduleManager::getNextEventJSON() {
     JsonDocument doc;
 
     // Find next scheduled event
-    DateTime now = rtcModule->getCurrentTime();
-    int offsetMinutes = configManager->getTimezoneOffset() * 30;
-    DateTime localTime = DateTime(now.unixtime() + (offsetMinutes * 60));
+    // Get current time with timezone
+    DateTime utcTime = rtcModule->getCurrentTime();
+    int offsetSeconds = configManager->getTimezoneOffset() * 1800; // Convert half-hours to seconds
+    if (configManager->isDaylightSaving()) {
+        offsetSeconds += 3600; // Add 1 hour for DST
+    }
+    DateTime localTime = DateTime(utcTime.unixtime() + offsetSeconds);
 
     uint8_t nextZone = 0;
     uint32_t nextTime = 0;
