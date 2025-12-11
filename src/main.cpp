@@ -145,12 +145,18 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration, Sch
     EventType eventType = (schedType == AI) ? EventType::AI : EventType::SCHEDULED;
     uint32_t eventId = eventLogger.logEventStart(zoneNumber, duration, eventType, schedId);
 
+    // Determine MQTT event type
+    String mqttEventType = (schedType == AI) ? "ai" : "scheduled";
+    if (schedId == 0) {
+      mqttEventType = "manual";
+    }
+
+    // Publish MQTT START event before starting zone
+    mqttManager.publishZoneStatus(zoneNumber, "start", duration, schedId, mqttEventType);
+
     // Start the zone using Hunter protocol (zone, time in minutes)
     hunterController.startZone(zoneNumber, duration);
     Serial.println("Zone " + String(zoneNumber) + " started via schedule for " + String(duration) + " minutes (Event ID: " + String(eventId) + ")");
-
-    // Publish MQTT zone status
-    mqttManager.publishZoneStatus(zoneNumber, "running", duration * 60);
   } else {
     // Stop the zone
     hunterController.stopZone(zoneNumber);
@@ -159,8 +165,8 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration, Sch
     // Log event end (completed normally)
     eventLogger.logEventEnd(0, true);
 
-    // Publish MQTT zone status
-    mqttManager.publishZoneStatus(zoneNumber, "stopped", 0);
+    // Publish MQTT STOP event
+    mqttManager.publishZoneStatus(zoneNumber, "stop", 0, 0, "scheduled");
   }
 }
 

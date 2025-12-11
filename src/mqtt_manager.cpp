@@ -375,25 +375,6 @@ void MQTTManager::publishDeviceStatus() {
     Serial.println("MQTT: Published device status to " + topic);
 }
 
-void MQTTManager::publishZoneStatus(uint8_t zone, const String& status, uint32_t timeRemaining) {
-    if (!isConnected) return;
-
-    JsonDocument doc;
-    doc["zone"] = zone;
-    doc["status"] = status;
-    if (timeRemaining > 0) {
-        doc["time_remaining"] = timeRemaining;
-    }
-    doc["timestamp"] = millis();
-
-    String json;
-    serializeJson(doc, json);
-
-    String topic = buildStatusTopic("zone/" + String(zone));
-    bool retain = configManager->isMQTTRetainMessages();
-    mqttClient.publish(topic.c_str(), json.c_str(), retain);
-}
-
 void MQTTManager::publishScheduleStatus() {
     if (!isConnected) return;
 
@@ -479,4 +460,44 @@ String MQTTManager::getClientId() {
 
 void MQTTManager::setDeviceId(const String& id) {
     deviceId = id;
+}
+
+void MQTTManager::publishZoneStatus(uint8_t zone, const String& status, uint32_t duration, uint8_t scheduleId, const String& eventType) {
+    if (!isConnected) return;
+
+    JsonDocument doc;
+    DateTime utcTime = rtcModule->getCurrentTime();
+    char timeBuffer[32];
+    sprintf(timeBuffer, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+            utcTime.year(), utcTime.month(), utcTime.day(),
+            utcTime.hour(), utcTime.minute(), utcTime.second());
+
+    doc["device_id"] = deviceId;
+    doc["device_zone_number"] = zone;
+    doc["event"] = status;
+    doc["timestamp_utc"] = timeBuffer;
+    doc["event_type"] = eventType;
+
+    if (status == "start") {
+        doc["duration_planned_min"] = duration;
+        if (scheduleId > 0) {
+            doc["schedule_id"] = scheduleId;
+        }
+    } else if (status == "stop") {
+        doc["completed"] = true; // Assume normal completion
+    }
+
+    String json;
+    serializeJson(doc, json);
+
+    String topic = buildStatusTopic("zone/" + String(zone));
+    bool retain = false; // Don't retain event messages
+
+    bool published = mqttClient.publish(topic.c_str(), json.c_str(), retain);
+
+    if (published) {
+        Serial.println("MQTT: Published zone " + String(zone) + " " + status + " event");
+    } else {
+        Serial.println("MQTT: Failed to publish zone event to " + topic);
+    }
 }

@@ -62,7 +62,7 @@ public:
     // Publishing
     void publishStatus();
     void publishDeviceStatus();
-    void publishZoneStatus(uint8_t zone, const String& status, uint32_t timeRemaining = 0);
+    void publishZoneStatus(uint8_t zone, const String& status, uint32_t duration = 0, uint8_t scheduleId = 0, const String& eventType = "scheduled");
     void publishScheduleStatus();
     void publishConfig();
     void publishDeviceConfig();  // Publish device configuration including IP
