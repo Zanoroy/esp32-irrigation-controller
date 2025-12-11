@@ -202,16 +202,16 @@ ConflictResult ScheduleManager::startZoneManual(uint8_t zone, uint16_t duration)
         activeZones[freeSlot].state = RUNNING;
         activeZones[freeSlot].startTime = millis();
         activeZones[freeSlot].duration = duration * 60000; // Convert to milliseconds
-        activeZones[freeSlot].isScheduled = false; // Will be set to true if called from schedule
-        activeZones[freeSlot].scheduleId = 0;
+        activeZones[freeSlot].isScheduled = false; // Manual start, not scheduled
+        activeZones[freeSlot].scheduleId = 0;      // 0 indicates manual start
         activeZones[freeSlot].timeRemaining = duration * 60; // Duration in seconds
 
-        // Call zone control callback (manual start, use BASIC type)
+        // Call zone control callback (manual start, use BASIC type with scheduleId=0 to indicate manual)
         if (zoneControlCallback) {
             zoneControlCallback(zone, true, duration, BASIC, 0);
         }
 
-        Serial.printf("ScheduleManager: Started zone %d for %d minutes\n", zone, duration);
+        Serial.printf("ScheduleManager: Started zone %d for %d minutes (manual)\n", zone, duration);
     }
 
     return result;

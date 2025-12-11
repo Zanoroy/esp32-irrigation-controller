@@ -141,32 +141,44 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration, Sch
   Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF") + " for " + String(duration) + " minutes");
 
   if (enable) {
-    // Log event start with correct type based on schedule type
-    EventType eventType = (schedType == AI) ? EventType::AI : EventType::SCHEDULED;
-    uint32_t eventId = eventLogger.logEventStart(zoneNumber, duration, eventType, schedId);
+    // Determine event type based on schedule ID and type
+    // schedId == 0 indicates manual start (via MQTT or REST API)
+    EventType eventType;
+    String mqttEventType;
 
-    // Determine MQTT event type
-    String mqttEventType = (schedType == AI) ? "ai" : "scheduled";
     if (schedId == 0) {
+      // Manual start via MQTT or REST API
+      eventType = EventType::MANUAL;
       mqttEventType = "manual";
+    } else if (schedType == AI) {
+      // AI-generated schedule
+      eventType = EventType::AI;
+      mqttEventType = "ai";
+    } else {
+      // Regular scheduled event
+      eventType = EventType::SCHEDULED;
+      mqttEventType = "scheduled";
     }
+
+    // Log event start with correct type
+    uint32_t eventId = eventLogger.logEventStart(zoneNumber, duration, eventType, schedId);
 
     // Publish MQTT START event before starting zone
     mqttManager.publishZoneStatus(zoneNumber, "start", duration, schedId, mqttEventType);
 
     // Start the zone using Hunter protocol (zone, time in minutes)
     hunterController.startZone(zoneNumber, duration);
-    Serial.println("Zone " + String(zoneNumber) + " started via schedule for " + String(duration) + " minutes (Event ID: " + String(eventId) + ")");
+    Serial.println("Zone " + String(zoneNumber) + " started (" + mqttEventType + ") for " + String(duration) + " minutes (Event ID: " + String(eventId) + ")");
   } else {
     // Stop the zone
     hunterController.stopZone(zoneNumber);
-    Serial.println("Zone " + String(zoneNumber) + " stopped via schedule");
+    Serial.println("Zone " + String(zoneNumber) + " stopped");
 
     // Log event end (completed normally)
     eventLogger.logEventEnd(0, true);
 
     // Publish MQTT STOP event
-    mqttManager.publishZoneStatus(zoneNumber, "stop", 0, 0, "scheduled");
+    mqttManager.publishZoneStatus(zoneNumber, "stop", 0, 0, "manual");
   }
 }
 

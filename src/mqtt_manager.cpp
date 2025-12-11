@@ -317,7 +317,12 @@ void MQTTManager::handleZoneMessage(const String& topic, const String& payload) 
     int duration = doc["duration"] | 0;
 
     if (action == "ON" && duration > 0) {
-        Serial.println("MQTT: Starting zone " + String(zone) + " for " + String(duration) + " minutes");
+        // Enforce maximum duration of 75 minutes for manual MQTT commands
+        if (duration > 75) {
+            Serial.println("MQTT: Duration " + String(duration) + " exceeds maximum of 75 minutes, capping to 75");
+            duration = 75;
+        }
+        Serial.println("MQTT: Starting zone " + String(zone) + " for " + String(duration) + " minutes (manual)");
         scheduleManager->startZoneManual(zone, duration);
     } else if (action == "OFF") {
         Serial.println("MQTT: Stopping zone " + String(zone));
