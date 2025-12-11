@@ -74,6 +74,12 @@ void HTTPScheduleClient::setDeviceId(const String& id) {
 
 String HTTPScheduleClient::buildScheduleUrl(const String& date, int8_t zoneId) {
     String url = serverUrl + "/api/schedules/daily?date=" + date;
+
+    // Add device_id parameter for multi-device filtering
+    if (deviceId.length() > 0) {
+        url += "&device_id=" + deviceId;
+    }
+
     if (zoneId > 0) {
         url += "&zone_id=" + String(zoneId);
     }

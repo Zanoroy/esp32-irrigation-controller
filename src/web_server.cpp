@@ -5,6 +5,7 @@
 #include "schedule_manager.h"
 #include "event_logger.h"
 #include "http_client.h"
+#include "build_number.h"
 #include <ArduinoJson.h>
 
 // HTML interface for irrigation control
@@ -163,11 +164,22 @@ void HunterWebServer::begin() {
         }
     });
 
+    server.on("/api/schedules/fetch", HTTP_OPTIONS, []() {
+        if (serverInstance) {
+            serverInstance->server.sendHeader("Access-Control-Allow-Origin", "*");
+            serverInstance->server.sendHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+            serverInstance->server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+            serverInstance->server.send(204);
+        }
+    });
+
     // 404 handler
     server.onNotFound(handleNotFound);
 
     server.begin();
     Serial.println("Irrigation ESP32 WebServer started with REST API");
+    Serial.print("Build Number: ");
+    Serial.println(BUILD_NUMBER);
     Serial.println("Available endpoints:");
     Serial.println("  GET  /                    - Main irrigation control interface");
     Serial.println("  GET  /api/start-zone      - Start zone (params: zone, time)");
@@ -184,6 +196,7 @@ void HunterWebServer::begin() {
     Serial.println("  GET  /api/schedules/active - Get active zones status");
     Serial.println("  POST /api/schedules/ai    - Set AI schedules from Node-RED");
     Serial.println("  DELETE /api/schedules/ai  - Clear AI schedules");
+    Serial.println("  POST /api/schedules/fetch - Fetch schedules from server");
     Serial.println("  GET  /api/events          - Get watering event logs");
     Serial.println("  DELETE /api/events        - Clear event logs");
     Serial.println("  GET  /api/events/stats    - Get event statistics");
@@ -457,6 +470,7 @@ void HunterWebServer::handleGetStatus() {
     String jsonResponse = "{";
     jsonResponse += "\"status\":\"success\",";
     jsonResponse += "\"system\":{";
+    jsonResponse += "\"build_number\":" + String(BUILD_NUMBER) + ",";
     jsonResponse += "\"free_heap\":" + String(ESP.getFreeHeap()) + ",";
     jsonResponse += "\"uptime_seconds\":" + String(millis() / 1000) + ",";
     jsonResponse += "\"wifi_rssi\":" + String(WiFi.RSSI()) + ",";

@@ -34,6 +34,7 @@
 #include "mqtt_manager.h"
 #include "http_client.h"
 #include "event_logger.h"
+#include "build_number.h"
 
 // Define constants
 const bool   PUMP_PIN_DEFAULT = false; // Set to true to set PUMP_PIN as On by default
@@ -57,6 +58,84 @@ MQTTManager mqttManager;
 HTTPScheduleClient httpClient;
 HunterRoam hunterController(HUNTER_PIN);
 EventLogger eventLogger;
+// Function to print device status details
+void printDeviceStatus() {
+  Serial.println("");
+  Serial.println("╔═══════════════════════════════════════════════════════╗");
+  Serial.println("║        ESP32 IRRIGATION CONTROLLER STATUS            ║");
+  Serial.println("╚═══════════════════════════════════════════════════════╝");
+  Serial.println("");
+
+  // Build and Firmware Info
+  Serial.println("📦 FIRMWARE:");
+  Serial.println("   Build Number: " + String(BUILD_NUMBER));
+  Serial.println("   Compiler: " + String(__VERSION__));
+  Serial.println("   Compiled: " + String(__DATE__) + " " + String(__TIME__));
+  Serial.println("");
+
+  // WiFi and Network Info
+  Serial.println("📡 NETWORK:");
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("   Status: Connected ✓");
+    Serial.println("   SSID: " + String(WiFi.SSID()));
+    Serial.println("   IP Address: " + WiFi.localIP().toString());
+    Serial.println("   MAC Address: " + WiFi.macAddress());
+    Serial.println("   Signal Strength: " + String(WiFi.RSSI()) + " dBm");
+    Serial.println("   Web Interface: http://" + WiFi.localIP().toString());
+  } else {
+    Serial.println("   Status: Disconnected ✗");
+    Serial.println("   MAC Address: " + WiFi.macAddress());
+  }
+  Serial.println("");
+
+  // Device Configuration
+  Serial.println("⚙️  CONFIGURATION:");
+  if (configManager.isConfigValid()) {
+    Serial.println("   Device ID: " + configManager.getDeviceId());
+    Serial.println("   Server URL: " + configManager.getServerUrl());
+    Serial.println("   Server Enabled: " + String(configManager.isServerEnabled() ? "Yes" : "No"));
+    Serial.println("   MQTT Enabled: " + String(configManager.isMQTTEnabled() ? "Yes" : "No"));
+    if (configManager.isMQTTEnabled()) {
+      Serial.println("   MQTT Broker: " + configManager.getMQTTBroker() + ":" + String(configManager.getMQTTPort()));
+    }
+  } else {
+    Serial.println("   Status: Using defaults (no saved config)");
+  }
+  Serial.println("");
+
+  // Time and RTC Info
+  Serial.println("🕐 TIME:");
+  if (rtcModule.isInitialized()) {
+    Serial.println("   RTC Status: Initialized ✓");
+    if (configManager.isConfigValid()) {
+      Serial.println("   Current Time: " + configManager.getLocalTimeString());
+      Serial.println("   Timezone: UTC" + String(configManager.getTimezoneOffset() >= 0 ? "+" : "") + String(configManager.getTimezoneOffset()));
+    } else {
+      Serial.println("   UTC Time: " + rtcModule.getDateTimeString());
+    }
+  } else {
+    Serial.println("   RTC Status: Not initialized ✗");
+  }
+  Serial.println("");
+
+  // System Info
+  Serial.println("💾 SYSTEM:");
+  Serial.println("   Free Heap: " + String(ESP.getFreeHeap()) + " bytes");
+  Serial.println("   Uptime: " + String(millis() / 1000) + " seconds");
+  Serial.println("   Chip Model: " + String(ESP.getChipModel()));
+  Serial.println("   CPU Frequency: " + String(ESP.getCpuFreqMHz()) + " MHz");
+  Serial.println("   Flash Size: " + String(ESP.getFlashChipSize() / 1024 / 1024) + " MB");
+  Serial.println("");
+
+  // Schedules Status
+  Serial.println("📅 SCHEDULES:");
+  Serial.println("   Active Zones: " + String(scheduleManager.hasActiveZones() ? "Yes" : "No"));
+  Serial.println("");
+
+  Serial.println("═══════════════════════════════════════════════════════");
+  Serial.println("");
+}
+
 // Zone control callback function for ScheduleManager
 void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration, ScheduleType schedType, uint8_t schedId) {
   Serial.println("Zone control callback: Zone " + String(zoneNumber) + " -> " + (enable ? "ON" : "OFF") + " for " + String(duration) + " minutes");
@@ -364,11 +443,30 @@ void setup(void){
   Serial.println("Irrigation ESP32 Controller Ready!");
   Serial.println("Access the web interface at: http://" + WiFi.localIP().toString());
   Serial.println("=================================");
+
+  // Print device status on startup
+  printDeviceStatus();
 }
 
 void loop(void)
 {
   static unsigned long lastNTPSync = 0;
+
+  // Check for serial commands
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    if (command == "status" || command == "s") {
+      printDeviceStatus();
+    } else if (command == "help" || command == "h" || command == "?") {
+      Serial.println("");
+      Serial.println("Available Commands:");
+      Serial.println("  status (or s) - Display device status");
+      Serial.println("  help (or h or ?) - Show this help");
+      Serial.println("");
+    }
+  }
+
   // Get sync interval from configuration (convert hours to milliseconds)
   unsigned long NTP_SYNC_INTERVAL = configManager.isConfigValid() ?
     (configManager.getSyncInterval() * 60UL * 60UL * 1000UL) :
