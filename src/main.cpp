@@ -25,6 +25,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <ArduinoOTA.h>
 // #include "hunter_esp32.h"
 #include "HunterRoam.h"
 #include "web_server.h"
@@ -395,6 +396,61 @@ void setup(void){
     Serial.println("Please check your credentials and try again.");
   }
 
+  // Initialize OTA (Over-The-Air) firmware updates
+  Serial.println("");
+  Serial.println("Initializing OTA firmware update capability...");
+
+  // Set OTA hostname (use device ID if configured, otherwise use default)
+  String otaHostname = "esp32-irrigation";
+  if (configManager.isConfigValid() && !configManager.getDeviceId().isEmpty()) {
+    otaHostname = "irrigation-" + configManager.getDeviceId();
+  }
+  ArduinoOTA.setHostname(otaHostname.c_str());
+
+  // Optional: Set OTA password for security
+  // ArduinoOTA.setPassword("your-ota-password");
+
+  // OTA event handlers
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_SPIFFS
+      type = "filesystem";
+    }
+    Serial.println("OTA: Starting update (" + type + ")");
+    Serial.println("⚠️  Stopping all zones during firmware update...");
+
+    // Stop any running zones during OTA (stop zone 0 stops all)
+    hunterController.stopZone(0);
+  });
+
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nOTA: Update complete!");
+    Serial.println("ESP32 will reboot in 3 seconds...");
+  });
+
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("OTA Progress: %u%%\r", (progress / (total / 100)));
+  });
+
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("OTA Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+
+    Serial.println("⚠️  OTA update failed - ESP32 will continue with current firmware");
+  });
+
+  ArduinoOTA.begin();
+  Serial.println("OTA initialized successfully");
+  Serial.println("  Hostname: " + String(otaHostname));
+  Serial.println("  IP Address: " + WiFi.localIP().toString());
+  Serial.println("  Upload via: pio run --target upload --upload-port " + WiFi.localIP().toString());
+
   // Initialize and start web server
   hunterServer.setRTCModule(&rtcModule);
   hunterServer.setConfigManager(&configManager);
@@ -469,6 +525,9 @@ void setup(void){
 void loop(void)
 {
   static unsigned long lastNTPSync = 0;
+
+  // Handle OTA updates
+  ArduinoOTA.handle();
 
   // Check for serial commands
   if (Serial.available() > 0) {
