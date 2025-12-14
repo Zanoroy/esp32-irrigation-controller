@@ -183,8 +183,8 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration, Sch
   }
 }
 
-// Daily schedule fetch task - runs at 5:15 PM (17:15)
-// This is 15 minutes after the server generates schedules at 5:00 PM (17:00)
+// Daily schedule fetch task - configurable time (default 6:00 AM)
+// This allows the ESP32 to fetch after Node-RED generates schedules
 void checkAndFetchDailySchedule() {
   static int lastFetchDay = -1;
   static bool fetchAttemptedToday = false;
@@ -200,6 +200,11 @@ void checkAndFetchDailySchedule() {
   int currentHour = now.hour();
   int currentMinute = now.minute();
 
+  // Get configurable fetch time
+  int fetchHour = configManager.getScheduleFetchHour();
+  int fetchMinute = configManager.getScheduleFetchMinute();
+  int fetchDays = configManager.getScheduleFetchDays();
+
   // Reset fetch flag and retry count on new day
   if (currentDay != lastFetchDay) {
     fetchAttemptedToday = false;
@@ -207,8 +212,9 @@ void checkAndFetchDailySchedule() {
     lastFetchDay = currentDay;
   }
 
-  // Fetch schedule at 11:00 PM (23:00) if not already attempted today
-  if (!fetchAttemptedToday && currentHour == 23 && currentMinute >= 00 && currentMinute < 20) {
+  // Fetch schedule at configured time if not already attempted today
+  // Allow 20 minute window for fetch attempt
+  if (!fetchAttemptedToday && currentHour == fetchHour && currentMinute >= fetchMinute && currentMinute < (fetchMinute + 20)) {
     fetchAttemptedToday = true;
 
     if (WiFi.status() != WL_CONNECTED) {
@@ -217,13 +223,14 @@ void checkAndFetchDailySchedule() {
     }
 
     Serial.println("");
-    Serial.println("=== DAILY SCHEDULE FETCH (23:00) ===");
+    Serial.println("=== DAILY SCHEDULE FETCH (" + String(fetchHour) + ":" + String(fetchMinute).substring(0, 2) + ") ===");
     Serial.println("Time: " + rtcModule.getDateTimeString());
     Serial.println("Device ID: " + configManager.getDeviceId());
     Serial.println("Server: " + configManager.getServerUrl());
+    Serial.println("Fetching " + String(fetchDays) + "-day schedule...");
 
-    if (httpClient.fetchSchedule(5)) { // Fetch 5-day schedule
-      Serial.println("✅ 5-day schedule fetched successfully from server");
+    if (httpClient.fetchSchedule(fetchDays)) {
+      Serial.println("✅ " + String(fetchDays) + "-day schedule fetched successfully from server");
       Serial.println("=======================================");
       retryCount = 0; // Reset retry count on success
     } else {
@@ -249,7 +256,8 @@ void checkAndFetchDailySchedule() {
         return;
       }
 
-      if (httpClient.fetchSchedule(5)) {
+      int fetchDays = configManager.getScheduleFetchDays();
+      if (httpClient.fetchSchedule(fetchDays)) {
         Serial.println("✅ Schedule fetched successfully on retry #" + String(retryCount));
         Serial.println("============================");
         retryCount = configManager.getServerMaxRetries(); // Stop retrying

@@ -53,6 +53,9 @@ void ConfigManager::setDefaults() {
     config.serverRetryInterval = 3600; // 1 hour
     config.serverMaxRetries = 24; // 24 retries per day
     config.serverEnabled = true;
+    config.scheduleFetchHour = 6; // 6 AM (1 hour after Node-RED generates at 5:15 AM)
+    config.scheduleFetchMinute = 0; // On the hour
+    config.scheduleFetchDays = 5; // Fetch 5-day lookahead
 
     // Irrigation defaults
     config.enableScheduling = true;
@@ -296,6 +299,9 @@ String ConfigManager::getConfigJSON() {
     json += "\"device_id\":\"" + String(config.deviceId) + "\",";
     json += "\"server_retry_interval\":" + String(config.serverRetryInterval) + ",";
     json += "\"server_max_retries\":" + String(config.serverMaxRetries) + ",";
+    json += "\"schedule_fetch_hour\":" + String(config.scheduleFetchHour) + ",";
+    json += "\"schedule_fetch_minute\":" + String(config.scheduleFetchMinute) + ",";
+    json += "\"schedule_fetch_days\":" + String(config.scheduleFetchDays) + ",";
     json += "\"scheduling\":" + String(config.enableScheduling ? "true" : "false") + ",";
     json += "\"max_runtime\":" + String(config.maxZoneRunTime) + ",";
     json += "\"max_enabled_zones\":" + String(config.maxEnabledZones) + ",";
@@ -381,6 +387,27 @@ void ConfigManager::setServerRetryInterval(int seconds) {
 void ConfigManager::setServerMaxRetries(int retries) {
     if (retries >= 0 && retries <= 100) {
         config.serverMaxRetries = retries;
+        saveConfig();
+    }
+}
+
+void ConfigManager::setScheduleFetchHour(int hour) {
+    if (hour >= 0 && hour <= 23) {
+        config.scheduleFetchHour = hour;
+        saveConfig();
+    }
+}
+
+void ConfigManager::setScheduleFetchMinute(int minute) {
+    if (minute >= 0 && minute <= 59) {
+        config.scheduleFetchMinute = minute;
+        saveConfig();
+    }
+}
+
+void ConfigManager::setScheduleFetchDays(int days) {
+    if (days >= 1 && days <= 5) {
+        config.scheduleFetchDays = days;
         saveConfig();
     }
 }

@@ -796,6 +796,36 @@ void HunterWebServer::handleSetConfig() {
         }
     }
 
+    String scheduleFetchHourStr = getParam("schedule_fetch_hour");
+    if (scheduleFetchHourStr.length() > 0) {
+        int hour = scheduleFetchHourStr.toInt();
+        if (hour >= 0 && hour <= 23) {
+            configManager->setScheduleFetchHour(hour);
+            response += "- Schedule Fetch Hour: " + String(hour) + "\n";
+            configChanged = true;
+        }
+    }
+
+    String scheduleFetchMinuteStr = getParam("schedule_fetch_minute");
+    if (scheduleFetchMinuteStr.length() > 0) {
+        int minute = scheduleFetchMinuteStr.toInt();
+        if (minute >= 0 && minute <= 59) {
+            configManager->setScheduleFetchMinute(minute);
+            response += "- Schedule Fetch Minute: " + String(minute) + "\n";
+            configChanged = true;
+        }
+    }
+
+    String scheduleFetchDaysStr = getParam("schedule_fetch_days");
+    if (scheduleFetchDaysStr.length() > 0) {
+        int days = scheduleFetchDaysStr.toInt();
+        if (days >= 1 && days <= 5) {
+            configManager->setScheduleFetchDays(days);
+            response += "- Schedule Fetch Days: " + String(days) + "\n";
+            configChanged = true;
+        }
+    }
+
     // Irrigation settings
     String schedulingStr = getParam("scheduling");
     if (schedulingStr.length() > 0) {

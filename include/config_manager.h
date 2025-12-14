@@ -39,6 +39,9 @@ struct SystemConfig {
     int serverRetryInterval; // Retry interval in seconds (default 3600 = 1 hour)
     int serverMaxRetries;   // Maximum retry attempts per day (default 24)
     bool serverEnabled;     // Enable server communication
+    int scheduleFetchHour;  // Hour to fetch daily schedule (0-23, default 6 for 6 AM)
+    int scheduleFetchMinute; // Minute to fetch daily schedule (0-59, default 0)
+    int scheduleFetchDays;  // Number of days to fetch (1-5, default 5)
 
     // Irrigation settings
     bool enableScheduling;
@@ -141,6 +144,12 @@ public:
     void setServerRetryInterval(int seconds);
     int getServerMaxRetries() const { return config.serverMaxRetries; }
     void setServerMaxRetries(int retries);
+    int getScheduleFetchHour() const { return config.scheduleFetchHour; }
+    void setScheduleFetchHour(int hour);
+    int getScheduleFetchMinute() const { return config.scheduleFetchMinute; }
+    void setScheduleFetchMinute(int minute);
+    int getScheduleFetchDays() const { return config.scheduleFetchDays; }
+    void setScheduleFetchDays(int days);
 
     // Utility methods
     void printConfig();
