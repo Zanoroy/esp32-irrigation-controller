@@ -53,6 +53,7 @@ private:
     String buildScheduleUrl(const String& date, int8_t zoneId = -1);  // Build URL with date parameter
     String buildCompletionUrl();
     String buildEventStartUrl();
+    String buildEventSyncUrl();
     bool parseScheduleResponse(const String& json, int expectedDays = 1);
     bool parse5DayScheduleResponse(const String& json);
     String createCompletionPayload(const EventCompletion& completion);
@@ -88,6 +89,11 @@ public:
 
     // Event start notification (immediate update when watering begins)
     bool reportEventStart(uint32_t scheduleId, uint8_t zoneId, const String& startTime);
+
+    // Event synchronization (bulk upload after offline period)
+    bool syncPendingEvents();
+    bool savePendingEvent(const EventCompletion& completion);
+    int getPendingEventCount();
 
     // Status and diagnostics
     bool testConnection();

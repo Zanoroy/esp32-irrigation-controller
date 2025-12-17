@@ -94,6 +94,10 @@ String HTTPScheduleClient::buildEventStartUrl() {
     return serverUrl + "/api/events/start";
 }
 
+String HTTPScheduleClient::buildEventSyncUrl() {
+    return serverUrl + "/api/events/sync";
+}
+
 bool HTTPScheduleClient::executeRequest(const String& url, String& response) {
     for (int retry = 0; retry < MAX_RETRIES; retry++) {
         if (retry > 0) {
@@ -380,9 +384,16 @@ bool HTTPScheduleClient::reportCompletion(const EventCompletion& completion) {
 
     if (WiFi.status() != WL_CONNECTED) {
         lastError = "WiFi not connected";
-        Serial.println("HTTP Client: " + lastError + " - completion report queued for later");
-        // TODO: Add to retry queue (Phase 2)
-        return false;
+        Serial.println("HTTP Client: " + lastError + " - saving event for later sync");
+
+        // Save to pending events queue for sync when online
+        if (savePendingEvent(completion)) {
+            Serial.println("HTTP Client: ✅ Event saved to pending queue");
+            return true;  // Return true since we successfully queued it
+        } else {
+            Serial.println("HTTP Client: ❌ Failed to save pending event");
+            return false;
+        }
     }
 
     Serial.println("HTTP Client: Reporting completion for schedule " + String(completion.scheduleId));
@@ -401,7 +412,10 @@ bool HTTPScheduleClient::reportCompletion(const EventCompletion& completion) {
         Serial.println("  Response: " + response);
     } else {
         Serial.println("HTTP Client: Failed to report completion - " + lastError);
-        // TODO: Add to retry queue (Phase 2)
+        Serial.println("HTTP Client: Saving event for later sync");
+
+        // If POST failed, save to pending queue
+        savePendingEvent(completion);
     }
 
     return success;
@@ -830,11 +844,204 @@ bool HTTPScheduleClient::fetchSchedule(int days, int8_t zoneId) {
         consecutiveFailures = 0;
         Serial.println("HTTP Client: ✅ Successfully loaded schedules from " +
                        String(daysSuccessful) + "/" + String(days) + " days");
+
+        // After successful schedule fetch, sync any pending events
+        if (getPendingEventCount() > 0) {
+            Serial.println("HTTP Client: 📤 Syncing " + String(getPendingEventCount()) + " pending events...");
+            syncPendingEvents();
+        }
+
         return true;
     } else {
         consecutiveFailures++;
         Serial.println("HTTP Client: ❌ Failed to fetch any schedules");
         Serial.println("  Attempting to load from cache...");
         return loadLatestCachedSchedule();
+    }
+}
+
+/**
+ * Save event to pending queue (for offline sync)
+ * Events are stored in SPIFFS and synced when connection restored
+ */
+bool HTTPScheduleClient::savePendingEvent(const EventCompletion& completion) {
+    if (!SPIFFS.begin()) {
+        Serial.println("HTTP Client: Failed to mount SPIFFS for pending event save");
+        return false;
+    }
+
+    // Create /events directory if it doesn't exist
+    if (!SPIFFS.exists("/events")) {
+        File dir = SPIFFS.open("/events/.init", "w");
+        if (dir) {
+            dir.close();
+        }
+    }
+
+    // Generate filename: /events/pending_{timestamp}_{zoneId}.json
+    String filename = "/events/pending_" + String(millis()) + "_z" + String(completion.zoneId) + ".json";
+
+    File file = SPIFFS.open(filename, "w");
+    if (!file) {
+        Serial.println("HTTP Client: Failed to create pending event file: " + filename);
+        return false;
+    }
+
+    // Write event data as JSON
+    DynamicJsonDocument doc(512);
+    doc["schedule_id"] = completion.scheduleId;
+    doc["zone_id"] = completion.zoneId;
+    doc["device_id"] = completion.deviceId;
+    doc["start_time"] = completion.startTime;
+    doc["end_time"] = completion.endTime;
+    doc["duration_min"] = completion.actualDurationMin;
+    doc["water_used_liters"] = completion.waterUsedLiters;
+    doc["status"] = completion.status;
+    doc["notes"] = completion.notes;
+    doc["saved_at"] = String(millis());
+
+    serializeJson(doc, file);
+    file.close();
+
+    Serial.println("HTTP Client: 💾 Saved pending event: " + filename);
+    return true;
+}
+
+/**
+ * Get count of pending events waiting to be synced
+ */
+int HTTPScheduleClient::getPendingEventCount() {
+    if (!SPIFFS.begin()) {
+        return 0;
+    }
+
+    int count = 0;
+    File root = SPIFFS.open("/events");
+    if (!root || !root.isDirectory()) {
+        return 0;
+    }
+
+    File file = root.openNextFile();
+    while (file) {
+        String name = file.name();
+        if (name.startsWith("/events/pending_")) {
+            count++;
+        }
+        file = root.openNextFile();
+    }
+
+    return count;
+}
+
+/**
+ * Sync all pending events to server
+ * Called after successful schedule fetch or WiFi reconnection
+ */
+bool HTTPScheduleClient::syncPendingEvents() {
+    if (!SPIFFS.begin()) {
+        Serial.println("HTTP Client: Failed to mount SPIFFS for event sync");
+        return false;
+    }
+
+    // Collect all pending events
+    DynamicJsonDocument eventsDoc(4096);  // Buffer for multiple events
+    JsonArray events = eventsDoc.createNestedArray("events");
+    eventsDoc["device_id"] = deviceId;
+
+    File root = SPIFFS.open("/events");
+    if (!root || !root.isDirectory()) {
+        Serial.println("HTTP Client: No pending events to sync");
+        return true;
+    }
+
+    int eventCount = 0;
+    File file = root.openNextFile();
+    while (file) {
+        String name = file.name();
+        if (name.startsWith("/events/pending_")) {
+            // Parse event file
+            DynamicJsonDocument eventDoc(512);
+            DeserializationError error = deserializeJson(eventDoc, file);
+
+            if (!error) {
+                JsonObject event = events.createNestedObject();
+                event["schedule_id"] = eventDoc["schedule_id"];
+                event["zone_id"] = eventDoc["zone_id"];
+                event["start_time"] = eventDoc["start_time"];
+                event["end_time"] = eventDoc["end_time"];
+                event["duration_min"] = eventDoc["duration_min"];
+                event["water_used_liters"] = eventDoc["water_used_liters"];
+                event["completed"] = (eventDoc["status"].as<String>() == "completed");
+                event["status"] = eventDoc["status"];
+                event["notes"] = eventDoc["notes"];
+
+                eventCount++;
+            } else {
+                Serial.println("HTTP Client: Failed to parse event file: " + name);
+            }
+        }
+        file.close();
+        file = root.openNextFile();
+    }
+
+    if (eventCount == 0) {
+        Serial.println("HTTP Client: No valid pending events to sync");
+        return true;
+    }
+
+    // Serialize payload
+    String payload;
+    serializeJson(eventsDoc, payload);
+
+    Serial.println("HTTP Client: 📤 Syncing " + String(eventCount) + " pending events");
+    Serial.println("  Payload size: " + String(payload.length()) + " bytes");
+
+    // POST to /api/events/sync
+    String url = buildEventSyncUrl();
+    String response;
+
+    if (!executePostRequest(url, payload, response)) {
+        Serial.println("HTTP Client: ❌ Failed to sync events - " + lastError);
+        return false;
+    }
+
+    // Parse response
+    DynamicJsonDocument respDoc(1024);
+    DeserializationError error = deserializeJson(respDoc, response);
+
+    if (error) {
+        Serial.println("HTTP Client: Failed to parse sync response");
+        return false;
+    }
+
+    bool success = respDoc["success"];
+    int synced = respDoc["synced"] | 0;
+    int skipped = respDoc["skipped"] | 0;
+    int errors = respDoc["errors"] | 0;
+
+    if (success) {
+        Serial.println("HTTP Client: ✅ Event sync completed");
+        Serial.println("  Synced: " + String(synced) + ", Skipped: " + String(skipped) + ", Errors: " + String(errors));
+
+        // Delete successfully synced event files
+        File root2 = SPIFFS.open("/events");
+        File file2 = root2.openNextFile();
+        while (file2) {
+            String name = file2.name();
+            if (name.startsWith("/events/pending_")) {
+                file2.close();
+                SPIFFS.remove(name);
+                Serial.println("  Removed: " + name);
+                file2 = root2.openNextFile();
+            } else {
+                file2.close();
+                file2 = root2.openNextFile();
+            }
+        }
+
+        return true;
+    } else {
+        Serial.println("HTTP Client: ⚠️  Event sync partially failed");
+        return false;
     }
 }

@@ -10,6 +10,7 @@ class RTCModule;
 class ConfigManager;
 class ScheduleManager;
 class HTTPScheduleClient;
+class MQTTManager;
 
 // Zone schedule structure
 struct ZoneSchedule {
@@ -56,6 +57,9 @@ private:
 
     // HTTP Schedule Client reference
     static class HTTPScheduleClient* httpClient;
+
+    // MQTT Manager reference
+    static class MQTTManager* mqttManager;
 
     // Private methods for handling requests
     static void handleRoot();
@@ -117,6 +121,9 @@ public:
 
     // Set HTTP client reference
     void setHTTPClient(class HTTPScheduleClient* client) { httpClient = client; }
+
+    // Set MQTT manager reference
+    void setMQTTManager(class MQTTManager* mqtt) { mqttManager = mqtt; }
 
     // Process any pending commands (call this in main loop)
     void processCommands();

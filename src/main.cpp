@@ -472,6 +472,8 @@ void setup(void){
   Serial.println("Initializing MQTT Manager...");
   if (mqttManager.begin(&configManager, &scheduleManager, &rtcModule)) {
     Serial.println("MQTT Manager initialized successfully");
+    // Set MQTT manager reference in web server for status display
+    hunterServer.setMQTTManager(&mqttManager);
   } else {
     Serial.println("WARNING: MQTT Manager failed to initialize");
   }

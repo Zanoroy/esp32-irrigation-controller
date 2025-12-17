@@ -5,6 +5,7 @@
 #include "schedule_manager.h"
 #include "event_logger.h"
 #include "http_client.h"
+#include "mqtt_manager.h"
 #include "build_number.h"
 #include <ArduinoJson.h>
 
@@ -29,28 +30,26 @@ const char* getMainHTML() {
            "input[type=\"number\"]{padding:8px;margin:5px;border:1px solid #ccc;border-radius:4px;}"
            ".status{font-weight:bold;color:#2196F3;}"
            ".time-display{font-size:18px;color:#333;}"
+           ".collapsible{cursor:pointer;padding:10px;background:#2196F3;color:white;border:none;text-align:left;width:100%;font-size:16px;border-radius:4px;}"
+           ".collapsible:hover{background:#1976D2;}"
+           ".collapsible:after{content:'\\25BC';float:right;}"
+           ".collapsible.active:after{content:'\\25B2';}"
+           ".collapse-content{max-height:0;overflow:hidden;transition:max-height 0.3s ease-out;}"
            "</style></head><body>"
            "<div class=\"container\">"
            "<div class=\"card\">"
-           "<h1>🌱 Irrigation ESP32 Irrigation Controller</h1>"
+           "<h1>ESP32 Irrigation Controller</h1>"
            "<div class=\"status\" id=\"status\">System Ready</div>"
            "<div class=\"time-display\" id=\"currentTime\">Loading time...</div>"
            "</div>"
            "<div class=\"card\">"
+           "<button class=\"collapsible\" onclick=\"toggleCollapse(this)\">System Status</button>"
+           "<div class=\"collapse-content\" id=\"systemInfo\">Loading...</div>"
+           "</div>"
+           "</div>"
+           "<div class=\"card\">"
            "<h2>Zone Control</h2>"
            "<div class=\"zone-grid\" id=\"zoneGrid\"></div>"
-           "</div>"
-           "<div class=\"card\">"
-           "<h2>Program Control</h2>"
-           "<button class=\"program-btn\" onclick=\"runProgram(1)\">Program 1</button>"
-           "<button class=\"program-btn\" onclick=\"runProgram(2)\">Program 2</button>"
-           "<button class=\"program-btn\" onclick=\"runProgram(3)\">Program 3</button>"
-           "<button class=\"program-btn\" onclick=\"runProgram(4)\">Program 4</button>"
-           "</div>"
-           "<div class=\"card\">"
-           "<h2>System Status</h2>"
-           "<div id=\"systemInfo\">Loading...</div>"
-           "</div>"
            "</div>"
            "<script>"
            "function initZones(){"
@@ -76,11 +75,20 @@ const char* getMainHTML() {
            "const zoneCard=document.querySelectorAll('.zone-card')[zone-1];"
            "zoneCard.className=active?'zone-card zone-active':'zone-card zone-inactive';}"
            "function updateTime(){"
-           "fetch('/api/time').then(response=>response.text()).then(time=>{"
-           "document.getElementById('currentTime').textContent='Current Time: '+time;}).catch(err=>console.error('Error:',err));}"
+           "fetch('/api/time').then(response=>response.json()).then(data=>{"
+           "document.getElementById('currentTime').textContent='Current Time: '+(data.time||'N/A');}).catch(err=>console.error('Error:',err));}"
            "function updateSystemInfo(){"
-           "fetch('/api/status').then(response=>response.text()).then(info=>{"
-           "document.getElementById('systemInfo').innerHTML=info;}).catch(err=>console.error('Error:',err));}"
+           "fetch('/api/status').then(response=>response.json()).then(data=>{"
+           "let html='<table style=\"width:100%;border-collapse:collapse\">';"
+           "if(data.system){for(let key in data.system){html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">'+key.replace(/_/g,' ').toUpperCase()+'</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.system[key]+'</td></tr>';}}"
+           "if(data.pump){html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">PUMP STATUS</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.pump.status+'</td></tr>';}"
+           "if(data.rtc){for(let key in data.rtc){html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">RTC '+key.replace(/_/g,' ').toUpperCase()+'</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.rtc[key]+'</td></tr>';}}"
+           "if(data.mqtt){for(let key in data.mqtt){var label=key.replace(/^mqtt_/,'').replace(/_/g,' ').toUpperCase();html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">MQTT '+label+'</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.mqtt[key]+'</td></tr>';}}"
+           "html+='</table>';document.getElementById('systemInfo').innerHTML=html;}).catch(err=>console.error('Error:',err));}"
+           "function toggleCollapse(btn){"
+           "btn.classList.toggle('active');"
+           "var content=btn.nextElementSibling;"
+           "if(content.style.maxHeight){content.style.maxHeight=null;}else{content.style.maxHeight=content.scrollHeight+'px';}}"
            "document.addEventListener('DOMContentLoaded',function(){"
            "initZones();updateTime();updateSystemInfo();"
            "setInterval(updateTime,10000);setInterval(updateSystemInfo,30000);});"
@@ -98,6 +106,7 @@ ConfigManager* HunterWebServer::configManager = nullptr;
 ScheduleManager* HunterWebServer::scheduleManager = nullptr;
 EventLogger* HunterWebServer::eventLogger = nullptr;
 HTTPScheduleClient* HunterWebServer::httpClient = nullptr;
+MQTTManager* HunterWebServer::mqttManager = nullptr;
 ZoneSchedule HunterWebServer::schedules[16] = {}; // Initialize all to default values
 int HunterWebServer::activeZones[16] = {}; // All zones start inactive
 unsigned long HunterWebServer::zoneStartTimes[16] = {}; // All start times zero
@@ -471,6 +480,9 @@ void HunterWebServer::handleGetStatus() {
     jsonResponse += "\"status\":\"success\",";
     jsonResponse += "\"system\":{";
     jsonResponse += "\"build_number\":" + String(BUILD_NUMBER) + ",";
+    if (configManager) {
+        jsonResponse += "\"device_id\":\"" + configManager->getDeviceId() + "\",";
+    }
     jsonResponse += "\"free_heap\":" + String(ESP.getFreeHeap()) + ",";
     jsonResponse += "\"uptime_seconds\":" + String(millis() / 1000) + ",";
     jsonResponse += "\"wifi_rssi\":" + String(WiFi.RSSI()) + ",";
@@ -496,6 +508,27 @@ void HunterWebServer::handleGetStatus() {
         }
     } else {
         jsonResponse += "\"status\":\"not_available\"";
+    }
+    jsonResponse += "},";
+
+    // MQTT status
+    jsonResponse += "\"mqtt\":{";
+    if (mqttManager && configManager) {
+        bool connected = mqttManager->isClientConnected();
+        jsonResponse += "\"status\":\"" + String(connected ? "connected" : "disconnected") + "\",";
+        unsigned long lastPublish = mqttManager->getLastPublishTime();
+        if (lastPublish > 0) {
+            unsigned long secondsAgo = (millis() - lastPublish) / 1000;
+            jsonResponse += "\"last_device_config_sent\":\"" + String(secondsAgo) + " seconds ago\",";
+        } else {
+            jsonResponse += "\"last_device_config_sent\":\"never\",";
+        }
+        jsonResponse += "\"mqtt_enabled\":" + String(configManager->isMQTTEnabled() ? "true" : "false") + ",";
+        jsonResponse += "\"mqtt_broker\":\"" + configManager->getMQTTBroker() + "\",";
+        jsonResponse += "\"mqtt_port\":" + String(configManager->getMQTTPort()) + ",";
+        jsonResponse += "\"mqtt_topic_prefix\":\"" + configManager->getMQTTTopicPrefix() + "\"";
+    } else {
+        jsonResponse += "\"status\":\"not_configured\"";
     }
     jsonResponse += "}";
 

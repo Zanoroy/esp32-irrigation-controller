@@ -74,6 +74,7 @@ public:
     // Utility
     String getClientId();
     void setDeviceId(const String& id);
+    unsigned long getLastPublishTime() { return lastStatusPublish; }
 };
 
 #endif // MQTT_MANAGER_H
