@@ -303,7 +303,9 @@ bool HTTPScheduleClient::parseScheduleResponse(const String& json, int expectedD
     }
 
     Serial.println("HTTP Client: Successfully loaded " + String(totalEvents) + " events from server");
-    return totalEvents > 0;
+    
+    // Success even if 0 events - empty schedule is valid
+    return true;
 }
 
 bool HTTPScheduleClient::fetchDailySchedule(const String& date, int8_t zoneId) {
@@ -888,7 +890,7 @@ bool HTTPScheduleClient::savePendingEvent(const EventCompletion& completion) {
     }
 
     // Write event data as JSON
-    DynamicJsonDocument doc(512);
+    JsonDocument doc;
     doc["schedule_id"] = completion.scheduleId;
     doc["zone_id"] = completion.zoneId;
     doc["device_id"] = completion.deviceId;
@@ -944,8 +946,8 @@ bool HTTPScheduleClient::syncPendingEvents() {
     }
 
     // Collect all pending events
-    DynamicJsonDocument eventsDoc(4096);  // Buffer for multiple events
-    JsonArray events = eventsDoc.createNestedArray("events");
+    JsonDocument eventsDoc;
+    JsonArray events = eventsDoc["events"].to<JsonArray>();
     eventsDoc["device_id"] = deviceId;
 
     File root = SPIFFS.open("/events");
@@ -960,11 +962,11 @@ bool HTTPScheduleClient::syncPendingEvents() {
         String name = file.name();
         if (name.startsWith("/events/pending_")) {
             // Parse event file
-            DynamicJsonDocument eventDoc(512);
+            JsonDocument eventDoc;
             DeserializationError error = deserializeJson(eventDoc, file);
 
             if (!error) {
-                JsonObject event = events.createNestedObject();
+                JsonObject event = events.add<JsonObject>();
                 event["schedule_id"] = eventDoc["schedule_id"];
                 event["zone_id"] = eventDoc["zone_id"];
                 event["start_time"] = eventDoc["start_time"];
@@ -1006,7 +1008,7 @@ bool HTTPScheduleClient::syncPendingEvents() {
     }
 
     // Parse response
-    DynamicJsonDocument respDoc(1024);
+    JsonDocument respDoc;
     DeserializationError error = deserializeJson(respDoc, response);
 
     if (error) {
