@@ -303,7 +303,7 @@ bool HTTPScheduleClient::parseScheduleResponse(const String& json, int expectedD
     }
 
     Serial.println("HTTP Client: Successfully loaded " + String(totalEvents) + " events from server");
-    
+
     // Success even if 0 events - empty schedule is valid
     return true;
 }
