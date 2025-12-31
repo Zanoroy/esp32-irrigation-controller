@@ -1,6 +1,6 @@
 #ifndef BUILD_NUMBER_H
 #define BUILD_NUMBER_H
 
-#define BUILD_NUMBER 52
+#define BUILD_NUMBER 56
 
 #endif // BUILD_NUMBER_H
