@@ -51,15 +51,27 @@ private:
 
     // Helper methods
     String buildScheduleUrl(const String& date, int8_t zoneId = -1);  // Build URL with date parameter
+    String buildZoneDetailsUrl();
     String buildCompletionUrl();
     String buildEventStartUrl();
     String buildEventSyncUrl();
     bool parseScheduleResponse(const String& json, int expectedDays = 1);
     bool parse5DayScheduleResponse(const String& json);
+    bool parseZoneDetailsResponse(const String& json);
     String createCompletionPayload(const EventCompletion& completion);
     String createEventStartPayload(uint32_t scheduleId, uint8_t zoneId, const String& startTime);
     bool executeRequest(const String& url, String& response);
     bool executePostRequest(const String& url, const String& payload, String& response);
+
+    // Zone details cache (keyed by ESP32-facing zone_id/device_zone_number)
+    static const uint8_t MAX_ZONE_ID = 48;
+    bool zoneHasData[MAX_ZONE_ID + 1];
+    String zoneNames[MAX_ZONE_ID + 1];
+    bool zoneActive[MAX_ZONE_ID + 1];
+    float zoneWaterRateLpm[MAX_ZONE_ID + 1];
+    uint32_t zoneDatabaseId[MAX_ZONE_ID + 1];
+    uint8_t zoneDetailsCount;
+    unsigned long lastZoneDetailsFetchTime;
 
 public:
     HTTPScheduleClient();
@@ -74,6 +86,13 @@ public:
     bool fetch5DaySchedule(int8_t zoneId = -1);  // Fetch 5-day rolling lookahead
     bool fetchDailySchedule(const String& date, int8_t zoneId = -1);
     bool fetchTodaySchedule();
+
+    // Zone details fetching
+    bool fetchZoneDetails();
+    String getZoneName(uint8_t zoneId) const;
+    bool hasZoneDetails(uint8_t zoneId) const;
+    String getZoneDetailsJSON() const;  // {count, last_fetch_ms, zones:[...]}
+    unsigned long getLastZoneDetailsFetchTime() const { return lastZoneDetailsFetchTime; }
 
     // SPIFFS caching for offline resilience
     bool cacheScheduleToSPIFFS(const String& date, const String& json);

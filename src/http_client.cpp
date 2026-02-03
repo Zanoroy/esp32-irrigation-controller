@@ -12,6 +12,16 @@ HTTPScheduleClient::HTTPScheduleClient() {
     lastFetchTime = 0;
     lastError = "";
     consecutiveFailures = 0;
+
+    zoneDetailsCount = 0;
+    lastZoneDetailsFetchTime = 0;
+    for (uint8_t i = 0; i <= MAX_ZONE_ID; i++) {
+        zoneHasData[i] = false;
+        zoneNames[i] = "";
+        zoneActive[i] = false;
+        zoneWaterRateLpm[i] = 0.0f;
+        zoneDatabaseId[i] = 0;
+    }
 }
 
 bool HTTPScheduleClient::begin(ConfigManager* config, ScheduleManager* schedule) {
@@ -84,6 +94,144 @@ String HTTPScheduleClient::buildScheduleUrl(const String& date, int8_t zoneId) {
         url += "&zone_id=" + String(zoneId);
     }
     return url;
+}
+
+String HTTPScheduleClient::buildZoneDetailsUrl() {
+    String url = serverUrl + "/api/zonedetails";
+    if (deviceId.length() > 0) {
+        url += "?device_id=" + deviceId;
+    }
+    return url;
+}
+
+bool HTTPScheduleClient::parseZoneDetailsResponse(const String& json) {
+    // Response example:
+    // { success:true, device_id:"...", generated_at:"...", count:N, zones:[{zone_id, zone_name, database_zone_id, water_rate_lpm, active}, ...] }
+
+    DynamicJsonDocument doc(4096);
+    DeserializationError error = deserializeJson(doc, json);
+    if (error) {
+        lastError = "Zone details JSON parse failed: " + String(error.c_str());
+        Serial.println("HTTP Client: " + lastError);
+        return false;
+    }
+
+    if (!doc["success"].is<bool>() || !doc["success"].as<bool>()) {
+        const char* errMsg = doc["error"].is<const char*>() ? doc["error"].as<const char*>() : "Unknown error";
+        lastError = "Zone details request failed: " + String(errMsg);
+        Serial.println("HTTP Client: " + lastError);
+        return false;
+    }
+
+    JsonArray zones = doc["zones"].as<JsonArray>();
+    if (zones.isNull()) {
+        lastError = "Zone details response missing zones array";
+        Serial.println("HTTP Client: " + lastError);
+        return false;
+    }
+
+    // Clear cache
+    zoneDetailsCount = 0;
+    for (uint8_t i = 0; i <= MAX_ZONE_ID; i++) {
+        zoneHasData[i] = false;
+        zoneNames[i] = "";
+        zoneActive[i] = false;
+        zoneWaterRateLpm[i] = 0.0f;
+        zoneDatabaseId[i] = 0;
+    }
+
+    for (JsonVariant v : zones) {
+        if (!v.is<JsonObject>()) continue;
+        JsonObject z = v.as<JsonObject>();
+
+        int zoneId = z["zone_id"] | 0;
+        if (zoneId < 1 || zoneId > MAX_ZONE_ID) {
+            continue;
+        }
+
+        const char* zoneName = z["zone_name"] | "";
+        zoneHasData[zoneId] = true;
+        zoneNames[zoneId] = String(zoneName);
+        zoneActive[zoneId] = z["active"] | false;
+        zoneWaterRateLpm[zoneId] = z["water_rate_lpm"] | 0.0;
+        zoneDatabaseId[zoneId] = z["database_zone_id"] | 0;
+        zoneDetailsCount++;
+    }
+
+    Serial.println("HTTP Client: Loaded " + String(zoneDetailsCount) + " zone detail entries");
+    return true;
+}
+
+bool HTTPScheduleClient::fetchZoneDetails() {
+    if (!configManager) {
+        lastError = "Config manager not initialized";
+        return false;
+    }
+
+    if (WiFi.status() != WL_CONNECTED) {
+        lastError = "WiFi not connected";
+        Serial.println("HTTP Client: " + lastError);
+        return false;
+    }
+
+    if (!configManager->isServerEnabled()) {
+        lastError = "Server communication disabled";
+        return false;
+    }
+
+    String url = buildZoneDetailsUrl();
+    Serial.println("HTTP Client: Fetching zone details");
+    Serial.println("  URL: " + url);
+
+    String response;
+    if (!executeRequest(url, response)) {
+        Serial.println("HTTP Client: Zone details request failed - " + lastError);
+        return false;
+    }
+
+    bool ok = parseZoneDetailsResponse(response);
+    if (ok) {
+        lastZoneDetailsFetchTime = millis();
+    }
+    return ok;
+}
+
+String HTTPScheduleClient::getZoneName(uint8_t zoneId) const {
+    if (zoneId == 0 || zoneId > MAX_ZONE_ID) {
+        return "";
+    }
+    if (!zoneHasData[zoneId]) {
+        return "";
+    }
+    return zoneNames[zoneId];
+}
+
+bool HTTPScheduleClient::hasZoneDetails(uint8_t zoneId) const {
+    if (zoneId == 0 || zoneId > MAX_ZONE_ID) {
+        return false;
+    }
+    return zoneHasData[zoneId];
+}
+
+String HTTPScheduleClient::getZoneDetailsJSON() const {
+    DynamicJsonDocument doc(4096);
+    doc["count"] = zoneDetailsCount;
+    doc["last_fetch_ms"] = lastZoneDetailsFetchTime;
+    JsonArray zones = doc.createNestedArray("zones");
+
+    for (uint8_t i = 1; i <= MAX_ZONE_ID; i++) {
+        if (!zoneHasData[i]) continue;
+        JsonObject z = zones.createNestedObject();
+        z["zone_id"] = i;
+        z["zone_name"] = zoneNames[i];
+        z["database_zone_id"] = zoneDatabaseId[i];
+        z["water_rate_lpm"] = zoneWaterRateLpm[i];
+        z["active"] = zoneActive[i];
+    }
+
+    String out;
+    serializeJson(doc, out);
+    return out;
 }
 
 String HTTPScheduleClient::buildCompletionUrl() {

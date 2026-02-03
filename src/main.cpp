@@ -175,6 +175,12 @@ void zoneControlCallback(uint8_t zoneNumber, bool enable, uint16_t duration, Sch
     hunterController.stopZone(zoneNumber);
     Serial.println("Zone " + String(zoneNumber) + " stopped");
 
+    // Update volatile last-watered timestamp (since boot)
+    String localTime = configManager.getLocalTimeString();
+    if (localTime.indexOf("RTC not available") == -1) {
+      hunterServer.setZoneLastWatered(zoneNumber, localTime);
+    }
+
     // Log event end (completed normally)
     eventLogger.logEventEnd(0, true);
 
@@ -272,6 +278,31 @@ void checkAndFetchDailySchedule() {
         lastRetryTime = millis();
       }
     }
+  }
+}
+
+// Zone details fetch task - runs every 1 minute
+void checkAndFetchZoneDetails() {
+  static unsigned long lastZoneFetchMs = 0;
+
+  if (!configManager.isServerEnabled()) {
+    return;
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
+  const unsigned long intervalMs = 60UL * 1000UL;
+  if (millis() - lastZoneFetchMs < intervalMs) {
+    return;
+  }
+
+  lastZoneFetchMs = millis();
+
+  // Best-effort: keep last good data on failure
+  if (!httpClient.fetchZoneDetails()) {
+    Serial.println("⚠️ Zone details fetch failed: " + httpClient.getLastError());
   }
 }
 
@@ -504,6 +535,14 @@ void setup(void){
           Serial.println("⚠️ Failed to fetch schedule: " + httpClient.getLastError());
           Serial.println("   Will retry at 5:15 PM daily or use local schedules");
         }
+
+        // Fetch zone details on startup (best-effort)
+        Serial.println("Fetching zone details from server...");
+        if (httpClient.fetchZoneDetails()) {
+          Serial.println("✅ Zone details loaded from server");
+        } else {
+          Serial.println("⚠️ Failed to fetch zone details: " + httpClient.getLastError());
+        }
       } else {
         Serial.println("⚠️ Server connection test failed: " + httpClient.getLastError());
         Serial.println("   Will retry at 5:15 PM daily");
@@ -638,6 +677,9 @@ void loop(void)
 
   // Check for daily schedule fetch (runs at 5:15 PM with retry logic)
   checkAndFetchDailySchedule();
+
+  // Fetch zone metadata periodically (every 1 minute)
+  checkAndFetchZoneDetails();
 
   // Check and execute scheduled zones
   scheduleManager.checkAndExecuteSchedules();

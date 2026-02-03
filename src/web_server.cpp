@@ -13,7 +13,7 @@
 const char* getMainHTML() {
     return "<!DOCTYPE html>"
            "<html><head>"
-           "<title>ESP32 Irrigation Controller</title>"
+           "<title>Irrigation Controller</title>"
            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
            "<style>"
            "body{font-family:Arial;margin:20px;background:#f0f8ff;}"
@@ -21,6 +21,8 @@ const char* getMainHTML() {
            ".card{background:white;padding:20px;margin:10px 0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);}"
            ".zone-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}"
            ".zone-card{background:#e8f4f8;padding:15px;border-radius:5px;text-align:center;}"
+           ".zone-title{font-size:1.15em;font-weight:700;color:#222;margin:2px 0 2px 0;}"
+           ".zone-id-label{font-size:0.85em;font-weight:400;color:#666;margin:0 0 8px 0;}"
            ".zone-active{background:#90ee90;}"
            ".zone-inactive{background:#ffcccb;}"
            "button{padding:10px 15px;margin:5px;border:none;border-radius:4px;cursor:pointer;}"
@@ -38,8 +40,9 @@ const char* getMainHTML() {
            "</style></head><body>"
            "<div class=\"container\">"
            "<div class=\"card\">"
-           "<h1>ESP32 Irrigation Controller</h1>"
-           "<div class=\"status\" id=\"status\">System Ready</div>"
+           "<h1>Irrigation Controller</h1>"
+           "<div id=\"deviceIdDisplay\" style=\"margin-top:-6px;color:#555;\">Device ID: <span id=\"deviceId\">Loading...</span></div>"
+           "<div class=\"status\" style=\"margin-top:6px;margin-bottom:6px\"id=\"status\"><br>System Ready</div>"
            "<div class=\"time-display\" id=\"currentTime\">Loading time...</div>"
            "<button class=\"program-btn\" onclick=\"fetchSchedules()\" style=\"margin-top:10px;width:100%;\">Fetch 5 Day Schedule</button>"
            "</div>"
@@ -54,15 +57,19 @@ const char* getMainHTML() {
            "</div>"
            "<div class=\"card\">"
            "<h2>Zone Control</h2>"
-           "<div class=\"zone-grid\" id=\"zoneGrid\"></div>"
+           "<div class=\"zone-grid\" id=\"namedZoneGrid\"></div>"
+           "<button class=\"collapsible\" onclick=\"toggleCollapse(this)\" id=\"unnamedZonesToggle\" style=\"margin-top:12px;\">Unassigned Zones</button>"
+           "<div class=\"collapse-content\" id=\"unnamedZonesSection\"><div class=\"zone-grid\" id=\"unnamedZoneGrid\"></div></div>"
            "</div>"
            "<script>"
            "function initZones(){"
-           "const grid=document.getElementById('zoneGrid');"
+           "const grid=document.getElementById('namedZoneGrid');"
            "for(let i=1;i<=12;i++){"
            "const zoneCard=document.createElement('div');"
+           "zoneCard.id='zoneCard'+i;"
+           "zoneCard.dataset.zoneId=i;"
            "zoneCard.className='zone-card zone-inactive';"
-           "zoneCard.innerHTML='<h3>Zone '+i+'</h3><input type=\"number\" id=\"time'+i+'\" value=\"5\" min=\"1\" max=\"240\" placeholder=\"Minutes\"><br><button class=\"start-btn\" onclick=\"startZone('+i+')\">Start</button><button class=\"stop-btn\" onclick=\"stopZone('+i+')\">Stop</button>';"
+           "zoneCard.innerHTML='<div class=\"zone-title\" id=\"zoneTitle'+i+'\">Zone '+i+'</div><div class=\"zone-id-label\" id=\"zoneIdLabel'+i+'\">Zone '+i+'</div><div id=\"zoneLastWatered'+i+'\" style=\"font-size:0.8em;color:#777;margin:0 0 10px 0;min-height:1em;\">Last watered: Unknown</div><input type=\"number\" id=\"time'+i+'\" value=\"5\" min=\"1\" max=\"240\" placeholder=\"Minutes\"><br><button class=\"start-btn\" onclick=\"startZone('+i+')\">Start</button><button class=\"stop-btn\" onclick=\"stopZone('+i+')\">Stop</button>';"
            "grid.appendChild(zoneCard);}}"
            "function startZone(zone){"
            "const time=document.getElementById('time'+zone).value;"
@@ -77,18 +84,72 @@ const char* getMainHTML() {
            "fetch('/api/run-program?program='+program).then(response=>response.text()).then(data=>{"
            "document.getElementById('status').textContent='Program '+program+' started';}).catch(err=>console.error('Error:',err));}"
            "function updateZoneStatus(zone,active){"
-           "const zoneCard=document.querySelectorAll('.zone-card')[zone-1];"
+           "const zoneCard=document.getElementById('zoneCard'+zone);"
+           "if(!zoneCard)return;"
            "zoneCard.className=active?'zone-card zone-active':'zone-card zone-inactive';}"
+           "function setUnnamedVisibility(hasUnnamed){"
+           "const toggle=document.getElementById('unnamedZonesToggle');"
+           "const section=document.getElementById('unnamedZonesSection');"
+           "if(!toggle||!section)return;"
+           "toggle.style.display=hasUnnamed?'block':'none';"
+           "section.style.display=hasUnnamed?'block':'none';"
+           "if(!hasUnnamed){toggle.classList.remove('active');section.style.maxHeight=null;}"
+           "}"
+           "function adjustCollapseHeightIfOpen(btn){"
+           "if(!btn)return;"
+           "const content=btn.nextElementSibling;"
+           "if(btn.classList.contains('active') && content){content.style.maxHeight=content.scrollHeight+'px';}"
+           "}"
+           "function applyZoneGroupingFromDetails(zones){"
+           "const namedGrid=document.getElementById('namedZoneGrid');"
+           "const unnamedGrid=document.getElementById('unnamedZoneGrid');"
+           "if(!namedGrid||!unnamedGrid)return;"
+           "const zoneNameMap={};"
+           "if(Array.isArray(zones)){zones.forEach(z=>{if(z&&z.zone_id){zoneNameMap[String(z.zone_id)]=String(z.zone_name||'');}});}"
+           "let unnamedCount=0;"
+           "for(let i=1;i<=12;i++){"
+           "const name=(zoneNameMap[String(i)]||'').trim();"
+           "const card=document.getElementById('zoneCard'+i);"
+           "if(!card)continue;"
+           "if(name.length>0){namedGrid.appendChild(card);}else{unnamedGrid.appendChild(card);unnamedCount++;}"
+           "}"
+           "setUnnamedVisibility(unnamedCount>0);"
+           "adjustCollapseHeightIfOpen(document.getElementById('unnamedZonesToggle'));"
+           "}"
+           "function applyZoneNames(zones){"
+           "if(!Array.isArray(zones))return;"
+           "zones.forEach(z=>{"
+           "const zoneId=String(z.zone_id||'');"
+           "if(!zoneId)return;"
+           "const name=String(z.zone_name||'').trim();"
+           "const titleEl=document.getElementById('zoneTitle'+zoneId);"
+           "const idEl=document.getElementById('zoneIdLabel'+zoneId);"
+           "if(titleEl){titleEl.textContent=name.length>0?name:('Zone '+zoneId);}"
+           "if(idEl){idEl.textContent='Zone '+zoneId; idEl.style.display=name.length>0?'block':'none';}"
+           "});"
+           "}"
+           "function applyLastWatered(lastWatered){"
+           "if(!lastWatered)return;"
+           "for(let i=1;i<=12;i++){"
+           "const el=document.getElementById('zoneLastWatered'+i);"
+           "if(!el)continue;"
+           "const v=lastWatered[String(i)]||'Unknown';"
+           "el.textContent='Last watered: '+v;"
+           "}"
+           "}"
            "function updateTime(){"
            "fetch('/api/time').then(response=>response.json()).then(data=>{"
            "document.getElementById('currentTime').textContent='Current Time: '+(data.time||'N/A');}).catch(err=>console.error('Error:',err));}"
            "function updateSystemInfo(){"
            "fetch('/api/status').then(response=>response.json()).then(data=>{"
+           "if(data.system && data.system.device_id){var devEl=document.getElementById('deviceId');if(devEl){devEl.textContent=data.system.device_id;}}"
            "let html='<table style=\"width:100%;border-collapse:collapse\">';"
            "if(data.system){for(let key in data.system){html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">'+key.replace(/_/g,' ').toUpperCase()+'</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.system[key]+'</td></tr>';}}"
            "if(data.pump){html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">PUMP STATUS</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.pump.status+'</td></tr>';}"
            "if(data.rtc){for(let key in data.rtc){html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">RTC '+key.replace(/_/g,' ').toUpperCase()+'</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.rtc[key]+'</td></tr>';}}"
            "if(data.mqtt){for(let key in data.mqtt){var label=key.replace(/^mqtt_/,'').replace(/_/g,' ').toUpperCase();html+='<tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold\">MQTT '+label+'</td><td style=\"padding:8px;border:1px solid #ddd\">'+data.mqtt[key]+'</td></tr>';}}"
+           "if(data.zonedetails && data.zonedetails.zones){applyZoneNames(data.zonedetails.zones);applyZoneGroupingFromDetails(data.zonedetails.zones);}else{applyZoneGroupingFromDetails([]);}"
+           "if(data.zone_last_watered){applyLastWatered(data.zone_last_watered);}"
            "html+='</table>';document.getElementById('systemInfo').innerHTML=html;}).catch(err=>console.error('Error:',err));}"
            "function toggleCollapse(btn){"
            "btn.classList.toggle('active');"
@@ -121,7 +182,7 @@ const char* getMainHTML() {
            "html+='</tbody></table>';document.getElementById('scheduleInfo').innerHTML=html;}).catch(err=>{"
            "document.getElementById('scheduleInfo').innerHTML='<div style=\"padding:10px;color:red;\">Error loading schedules</div>';console.error('Error:',err);});}"
            "document.addEventListener('DOMContentLoaded',function(){"
-           "initZones();updateTime();updateSystemInfo();updateScheduleInfo();"
+           "initZones();setUnnamedVisibility(false);updateTime();updateSystemInfo();updateScheduleInfo();"
            "setInterval(updateTime,10000);setInterval(updateSystemInfo,30000);setInterval(updateScheduleInfo,60000);});"
            "</script></body></html>";
 }
@@ -142,10 +203,26 @@ ZoneSchedule HunterWebServer::schedules[16] = {}; // Initialize all to default v
 int HunterWebServer::activeZones[16] = {}; // All zones start inactive
 unsigned long HunterWebServer::zoneStartTimes[16] = {}; // All start times zero
 int HunterWebServer::zoneDurations[16] = {}; // All durations zero
+char HunterWebServer::zoneLastWatered[49][48] = {};
+bool HunterWebServer::zoneLastWateredInitialized = false;
 static HunterWebServer* serverInstance = nullptr;
 
 HunterWebServer::HunterWebServer(int port) : server(port) {
     serverInstance = this;
+
+    if (!zoneLastWateredInitialized) {
+        for (int i = 0; i < 49; i++) {
+            strncpy(zoneLastWatered[i], "Unknown", sizeof(zoneLastWatered[i]) - 1);
+            zoneLastWatered[i][sizeof(zoneLastWatered[i]) - 1] = '\0';
+        }
+        zoneLastWateredInitialized = true;
+    }
+}
+
+void HunterWebServer::setZoneLastWatered(uint8_t zone, const String& timestamp) {
+    if (zone < 1 || zone > 48) return;
+    strncpy(zoneLastWatered[zone], timestamp.c_str(), sizeof(zoneLastWatered[zone]) - 1);
+    zoneLastWatered[zone][sizeof(zoneLastWatered[zone]) - 1] = '\0';
 }
 
 void HunterWebServer::begin() {
@@ -560,6 +637,19 @@ void HunterWebServer::handleGetStatus() {
         jsonResponse += "\"mqtt_topic_prefix\":\"" + configManager->getMQTTTopicPrefix() + "\"";
     } else {
         jsonResponse += "\"status\":\"not_configured\"";
+    }
+    jsonResponse += "}";
+
+    // Zone details (from server /api/zonedetails), if available
+    if (httpClient) {
+        jsonResponse += ",\"zonedetails\":" + httpClient->getZoneDetailsJSON();
+    }
+
+    // Volatile last-watered per zone (since boot)
+    jsonResponse += ",\"zone_last_watered\":{";
+    for (int z = 1; z <= 12; z++) {
+        if (z > 1) jsonResponse += ",";
+        jsonResponse += "\"" + String(z) + "\":\"" + String(zoneLastWatered[z]) + "\"";
     }
     jsonResponse += "}";
 

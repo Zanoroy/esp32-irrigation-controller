@@ -40,6 +40,11 @@ private:
     static unsigned long zoneStartTimes[16]; // Track when each zone started
     static int zoneDurations[16]; // Track duration for each zone
 
+    // Volatile last-watered tracking (since boot)
+    // Index by zone number (1-48). Value is a human-readable timestamp string.
+    static char zoneLastWatered[49][48];
+    static bool zoneLastWateredInitialized;
+
     // Pin definitions
     static const int PUMP_PIN;
 
@@ -127,6 +132,9 @@ public:
 
     // Process any pending commands (call this in main loop)
     void processCommands();
+
+    // Volatile per-zone metadata
+    void setZoneLastWatered(uint8_t zone, const String& timestamp);
 
     // Zone timer management
     void checkZoneTimers();
